@@ -19,6 +19,10 @@ imgpoints = [] # 2d points in image plane.
 # Capture images
 imglist = []
 cap = cv.VideoCapture(0)
+cap.set(cv.CAP_PROP_FRAME_WIDTH, 640)
+cap.set(cv.CAP_PROP_FRAME_HEIGHT, 480)
+cap.set(cv.CAP_PROP_FPS, 30)
+
 if not cap.isOpened():
     print("cannot open camera")
     exit()

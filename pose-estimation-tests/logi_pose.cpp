@@ -40,10 +40,10 @@ using namespace std;
 using namespace cv;
 
 // Camera properties
-#define CAM_FX 1656
-#define CAM_FY 1656
-#define CAM_CX 1199
-#define CAM_CY 841
+#define CAM_FX 619
+#define CAM_FY 619
+#define CAM_CX 336
+#define CAM_CY 263
 
 // AprilTag Parameters
 #define HAMM_HIST_MAX 10
@@ -62,6 +62,10 @@ int main(int argc, char *argv[])
         cerr << "Couldn't open video capture device" << endl;
         return -1;
     }
+
+    cap.set(CAP_PROP_FRAME_WIDTH, 640);
+    cap.set(CAP_PROP_FRAME_HEIGHT, 480);
+    cap.set(CAP_PROP_FPS, 30);
 
     // Initialize tag detector with options
     apriltag_family_t *tf = NULL;

@@ -9,7 +9,7 @@ LDFLAGS = -lpthread -lm -lapriltag
 TARGETS := apriltag_demo opencv_demo
 
 .PHONY: all
-all: logi_pose
+all: logi_pose clean
 
 logi_pose: logi_pose.o
 	@echo "   [$@]"

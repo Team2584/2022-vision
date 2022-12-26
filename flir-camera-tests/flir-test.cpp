@@ -38,7 +38,6 @@ extern "C" {
 #include <apriltag/apriltag_pose.h>
 }
 
-
 // AprilTag Parameters
 #define HAMM_HIST_MAX 10
 #define HAMMING_NUMBER 0

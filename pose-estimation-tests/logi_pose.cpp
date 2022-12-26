@@ -39,26 +39,23 @@ extern "C" {
 using namespace std;
 using namespace cv;
 
+// Camera properties
+#define CAM_FX 1656
+#define CAM_FY 1656
+#define CAM_CX 1199
+#define CAM_CY 841
+
+// AprilTag Parameters
+#define HAMM_HIST_MAX 10
+#define HAMMING_NUMBER 0
+#define QUAD_DECIMATE 2.0
+#define QUAD_SIGMA 0.0
+#define NTHREADS 4
+#define APRIL_DEBUG 0
+#define REFINE_EDGES 1
 
 int main(int argc, char *argv[])
 {
-    getopt_t *getopt = getopt_create();
-
-    getopt_add_bool(getopt, 'h', "help", 0, "Show this help");
-    getopt_add_bool(getopt, 'd', "debug", 0, "Enable debugging output (slow)");
-    getopt_add_bool(getopt, 'q', "quiet", 0, "Reduce output");
-    getopt_add_int(getopt, 't', "threads", "1", "Use this many CPU threads");
-    getopt_add_double(getopt, 'x', "decimate", "2.0", "Decimate input image by this factor");
-    getopt_add_double(getopt, 'b', "blur", "0.0", "Apply low-pass blur to input");
-    getopt_add_bool(getopt, '0', "refine-edges", 1, "Spend more time trying to align edges of tags");
-
-    if (!getopt_parse(getopt, argc, argv, 1) ||
-            getopt_get_bool(getopt, "help")) {
-        printf("Usage: %s [options]\n", argv[0]);
-        getopt_do_usage(getopt);
-        exit(0);
-    }
-
     // Initialize camera
     VideoCapture cap(0);
     if (!cap.isOpened()) {
@@ -72,12 +69,12 @@ int main(int argc, char *argv[])
 
 
     apriltag_detector_t *td = apriltag_detector_create();
-    apriltag_detector_add_family_bits(td, tf, 0);
-    td->quad_decimate = getopt_get_double(getopt, "decimate");
-    td->quad_sigma = getopt_get_double(getopt, "blur");
-    td->nthreads = getopt_get_int(getopt, "threads");
-    td->debug = getopt_get_bool(getopt, "debug");
-    td->refine_edges = getopt_get_bool(getopt, "refine-edges");
+    apriltag_detector_add_family_bits(td, tf, HAMMING_NUMBER);
+    td->quad_decimate = QUAD_DECIMATE;
+    td->quad_sigma = QUAD_SIGMA;
+    td->nthreads = NTHREADS;
+    td->debug = APRIL_DEBUG;
+    td->refine_edges = REFINE_EDGES;
 
     Mat frame, gray;
     while (true) {
@@ -101,11 +98,11 @@ int main(int argc, char *argv[])
             apriltag_pose_t pose;
             apriltag_detection_info_t info;
             info.det = det;
-            info.tagsize = 0.017;
-            info.fx = 1400;
-            info.fy = 1400;
-            info.cx = 1001;
-            info.cy = 5925;
+            info.tagsize = 0.01524;
+            info.fx = CAM_FX;
+            info.fy = CAM_FY;
+            info.cx = CAM_CX;
+            info.cy = CAM_CY;
 
             double err = estimate_tag_pose(&info, &pose);
 
@@ -130,13 +127,6 @@ int main(int argc, char *argv[])
             line(frame, Point(det->p[2][0], det->p[2][1]),
                      Point(det->p[3][0], det->p[3][1]),
                      Scalar(0xff, 0, 0), 2);
-            line(frame, Point(1920 / 2 + 10, 1080/2),
-                     Point(1920/ 2 - 10, 1080/2),
-                     Scalar(0xff, 0xff, 0xff), 2);
-            line(frame, Point(1920/2, 1080/2 + 10),
-                     Point(1920/2, 1080/2 - 10),
-                     Scalar(0xff, 0xff, 0xff), 2);
-
             stringstream ss;
             ss << det->id;
             String text = ss.str();
@@ -151,6 +141,14 @@ int main(int argc, char *argv[])
         }
         apriltag_detections_destroy(detections);
 
+        // Center crosshair
+        line(frame, Point(frame.cols / 2 + 10, frame.rows/2),
+                 Point(frame.cols/ 2 - 10, frame.rows/2),
+                 Scalar(0xff, 0x00, 0xff), 2);
+        line(frame, Point(frame.cols/2, frame.rows/2 + 10),
+                 Point(frame.cols/2, frame.rows/2 - 10),
+                 Scalar(0xff, 0x00, 0xff), 2);
+
         imshow("Tag Detections", frame);
         if (waitKey(1) >= 0)
             break;
@@ -159,8 +157,6 @@ int main(int argc, char *argv[])
     apriltag_detector_destroy(td);
 
     tag16h5_destroy(tf);
-
-    getopt_destroy(getopt);
 
     return 0;
 }

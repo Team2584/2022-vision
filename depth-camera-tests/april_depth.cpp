@@ -34,6 +34,7 @@ either expressed or implied, of the Regents of The University of Michigan.
 
 extern "C" {
 #include <apriltag/apriltag.h>
+#include <apriltag/apriltag_pose.h>
 #include <apriltag/tag16h5.h>
 }
 
@@ -45,6 +46,12 @@ extern "C" {
 #define NTHREADS 4
 #define APRIL_DEBUG 0
 #define REFINE_EDGES 1
+
+// Camera parameters
+#define CAM_CX 323
+#define CAM_CY 245
+#define CAM_FX 608
+#define CAM_FY 608
 
 using namespace std;
 using namespace cv;
@@ -133,9 +140,28 @@ int main(int argc, char *argv[])
 
         // Draw detection outlines
         for (int i = 0; i < zarray_size(detections); i++) {
-            printf("DETECT ");
             apriltag_detection_t *det;
             zarray_get(detections, i, &det);
+
+            apriltag_pose_t pose;
+            apriltag_detection_info_t info;
+            info.det = det;
+            info.tagsize = 0.01524;
+            info.fx = CAM_FX;
+            info.fy = CAM_FY;
+            info.cx = CAM_CX;
+            info.cy = CAM_CY;
+
+            double err = estimate_tag_pose(&info, &pose);
+
+            printf("Rotation\n    %f | %f | %f\n    %f | %f | %f\n    %f | %f | %f\n\n",
+                   pose.R->data[0], pose.R->data[1], pose.R->data[2],
+                   pose.R->data[3], pose.R->data[4], pose.R->data[5],
+                   pose.R->data[6], pose.R->data[7], pose.R->data[8]);
+            printf("translation\n X: %f\n Y: %f\n Z: %f\n",
+                   pose.t->data[0] * 393.701, pose.t->data[1] * 393.701, pose.t->data[2] * 393.701);
+
+            printf("Err: %f\n\n\n", err);
 
             line(matframe, Point(det->p[0][0], det->p[0][1]),
                  Point(det->p[1][0], det->p[1][1]),

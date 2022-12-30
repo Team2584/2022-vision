@@ -33,7 +33,6 @@ extern "C" {
 #include <apriltag/apriltag.h>
 #include <apriltag/apriltag_pose.h>
 #include <apriltag/tag16h5.h>
-#include <apriltag/common/getopt.h>
 }
 
 using namespace std;
@@ -154,7 +153,7 @@ int main(int argc, char *argv[])
                  Scalar(0xff, 0x00, 0xff), 2);
 
         imshow("Tag Detections", frame);
-        if (waitKey(1) >= 0)
+        if (waitKey(1) == 'q')
             break;
     }
 

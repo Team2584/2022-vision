@@ -42,8 +42,9 @@ while True:
 
 cv.destroyAllWindows()
 
+print()
 for img in imglist:
-    print("Processing image")
+    print("Processing image... ", end="")
     gray = cv.cvtColor(img, cv.COLOR_BGR2GRAY)
 
     # Find the chess board corners
@@ -51,6 +52,7 @@ for img in imglist:
 
     # If found, add object points, image points (after refining them)
     if ret == True:
+        print("Found corners. Using image.")
         objpoints.append(objp)
         corners2 = cv.cornerSubPix(gray,corners, (11,11), (-1,-1), criteria)
         imgpoints.append(corners2)
@@ -59,13 +61,41 @@ for img in imglist:
         cv.drawChessboardCorners(img, (9,6), corners2, ret)
         cv.imshow('img', img)
         cv.waitKey(500)
+    else:
+        print("Corners not found. Discarding.")
 
 cv.destroyAllWindows()
 
-print("Beginning calibration")
+print("Beginning calibration...")
 ret, mtx, dist, rvecs, tvecs = cv.calibrateCamera(objpoints, imgpoints, gray.shape[::-1], None, None)
+h, w = img.shape[:2]
+newMtx, roi = cv.getOptimalNewCameraMatrix(mtx, dist, (w,h), 0, (w,h))
 
-print(f"fx: {mtx[0,0]}")
-print(f"fy: {mtx[1,1]}")
-print(f"cx: {mtx[0,2]}")
-print(f"cy: {mtx[1,2]}")
+print("Calibration done.\n\n")
+
+print("Camera Intrinsics (Camera Matrix):")
+print(mtx)
+print("Meaning:")
+print(f"fx: {int(round(mtx[0,0]))}")
+print(f"fy: {int(round(mtx[1,1]))}")
+print(f"cx: {int(round(mtx[0,2]))}")
+print(f"cy: {int(round(mtx[1,2]))}")
+
+print("\n\n")
+print("Camera Extrinsics (Distortion Matrix):")
+print(dist)
+print("Meaning:")
+print(f"k1 = {dist[0, 0]}")
+print(f"k2 = {dist[0, 1]}")
+print(f"p1 = {dist[0, 2]}")
+print(f"p2 = {dist[0, 3]}")
+print(f"k3 = {dist[0, 4]}")
+
+print("\n\n")
+print("Undistorted Camera Intrinsics (New Camera Matrix):")
+print(newMtx)
+print("Meaning:")
+print(f"fx: {int(round(newMtx[0,0]))}")
+print(f"fy: {int(round(newMtx[1,1]))}")
+print(f"cx: {int(round(newMtx[0,2]))}")
+print(f"cy: {int(round(newMtx[1,2]))}")

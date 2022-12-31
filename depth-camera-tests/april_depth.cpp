@@ -245,10 +245,12 @@ int main()
             linZ = pose.t->data[1] * 10;
 
             // Convert to degrees
+            /*
             rotX *= (180 / M_PI);
             rotY *= (180 / M_PI);
             rotZ *= (180 / M_PI);
-            rotZ += 180;
+            */
+            rotZ += M_PI;
 
             if (rotZ < 50 || rotZ > 310)
             {

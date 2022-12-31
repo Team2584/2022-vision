@@ -3,14 +3,14 @@ CXXFLAGS = -std=c++20 -Wno-deprecated
 LDFLAGS = -lrealsense2
 LDFLAGS += -L/usr/lib/aarch64-linux-gnu
 # LDFLAGS += -lopencv_fuzzy
-# LDFLAGS += -lopencv_calib3d
+LDFLAGS += -lopencv_calib3d
 # LDFLAGS += -lopencv_ml
 # LDFLAGS += -lopencv_dpm
 # LDFLAGS += -lopencv_cudev
 # LDFLAGS += -lopencv_cudabgsegm
 # LDFLAGS += -lopencv_cudafilters
 # LDFLAGS += -lopencv_stitching
-# LDFLAGS += -lopencv_videoio
+LDFLAGS += -lopencv_videoio
 # LDFLAGS += -lopencv_dnn_objdetect
 LDFLAGS += -lopencv_rgbd
 # LDFLAGS += -lopencv_cudaimgproc
@@ -52,6 +52,9 @@ stream:
 
 april_depth:
 	$(CXX) $(CXXFLAGS) april_depth.cpp $(LDFLAGS) -lapriltag $(CPPFLAGS) -o april_depth
+
+april_logi:
+	$(CXX) $(CXXFLAGS) april_logi.cpp $(LDFLAGS) -lapriltag $(CPPFLAGS) -o april_logi
 
 get_camera_props:
 	$(CXX) $(CXXFLAGS) get_camera_props.cpp $(LDFLAGS) $(CPPFLAGS) -o get_camera_props

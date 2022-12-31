@@ -29,8 +29,6 @@ either expressed or implied, of the Regents of The University of Michigan.
 #include <iostream>
 #include <iomanip>
 #include <sstream>
-#include <librealsense2/h/rs_sensor.h>
-#include <librealsense2/rs.hpp>
 
 #include <opencv2/opencv.hpp>
 
@@ -61,21 +59,16 @@ extern "C" {
 #define REFINE_EDGES 1
 
 // Camera parameters
-#define CAM_CX 323
-#define CAM_CY 245
-#define CAM_FX 608
-#define CAM_FY 608
+#define CAM_FX 619
+#define CAM_FY 619
+#define CAM_CX 336
+#define CAM_CY 263
 
 #define TAG_SIZE 0.01524
 
 using namespace std;
 using namespace cv;
 using namespace Eigen;
-
-// Rotation of tag relative to camera
-double rotX;
-double rotY;
-double rotZ;
 
 //Normalize angle to be within the interval [-pi,pi].
 inline double standardRad(double t) {
@@ -164,18 +157,15 @@ int main()
      * DEPTH CAMPERA SETUP *
      ***********************/
 
-    //Contruct a pipeline which abstracts the device
-    rs2::pipeline pipe;
+    VideoCapture cap(0);
+    if (!cap.isOpened()) {
+        cerr << "Couldn't open video capture device" << endl;
+        return -1;
+    }
 
-    //Create a configuration for configuring the pipeline with a non default profile
-    rs2::config cfg;
-
-    //Add desired streams to configuration
-    cfg.enable_stream(RS2_STREAM_COLOR, 640, 480, RS2_FORMAT_BGR8, 60);
-    cfg.enable_stream(RS2_STREAM_DEPTH, 640, 480, RS2_FORMAT_ANY, 60);
-
-    //Instruct pipeline to start streaming with the requested configuration
-    pipe.start(cfg);
+    cap.set(CAP_PROP_FRAME_WIDTH, 640);
+    cap.set(CAP_PROP_FRAME_HEIGHT, 480);
+    cap.set(CAP_PROP_FPS, 30);
 
     /**********************************************************************************************
      * AprilTags Setup *
@@ -235,16 +225,16 @@ int main()
      * THE LOOP *
      ************/
 
-    // Camera warmup - dropping several first frames to let auto-exposure stabilize
-    rs2::frameset frames;
-
-    for(int i = 0; i < 30; i++) { frames = pipe.wait_for_frames(); }
-
-    Mat matframe(Size(640, 480), CV_8UC3, (uint8_t *) frames.get_color_frame().get_data(), Mat::AUTO_STEP);
+    Mat matframe;
     Mat gray(Size(640, 480), CV_8UC1);
 
     Matrix3f poseRotationMatrix;
     Vector3f poseAngles; 
+
+    // Rotation of tag relative to camera
+    double *rotX;
+    double *rotY;
+    double *rotZ;
 
     // Translation of tag relative to camera
     double linX;
@@ -262,24 +252,18 @@ int main()
         // Make sure networktables is working
         sanitycheckEntry.Set("We have entered the loop (on the Jetson).");
         
-        // Grab a frame
-        frames = pipe.wait_for_frames();
-        rs2::video_frame frame = frames.get_color_frame();
-
-        // The Mat business is only needed for displaying results
-        matframe.data = (uint8_t *)frame.get_data();
+        cap >> matframe;
         cvtColor(matframe, gray, COLOR_BGR2GRAY);
+
+        // Make an image_u8_t header for the Mat data
+        image_u8_t im = { .width = gray.cols,
+            .height = gray.rows,
+            .stride = gray.cols,
+            .buf = gray.data
+        };
 
         int hamm_hist[HAMM_HIST_MAX];
         memset(hamm_hist, 0, sizeof(hamm_hist));
-
-        // Make an image_u8_t header from the frame
-        image_u8_t im = {
-            .width = gray.cols,
-            .height = gray.rows,
-            .stride = gray.cols,
-            .buf = gray.data,
-        };
 
         // Do the detecting
         zarray_t *detections = apriltag_detector_detect(td, &im);
@@ -361,19 +345,8 @@ int main()
             getRelativeTranslationRotation(det, TAG_SIZE, CAM_FX, CAM_FY,
                                            CAM_CX, CAM_CY,
                                            tag_trans, tag_rot);
-
-            wRo_to_euler(tag_rot, rotX, rotZ, rotY);
             cout << "Translation\n " << tag_trans * 10 * 39.37008 << endl;
-            //cout << "Rotation\n " << tag_rot << endl;
-            printf("Better Rotation\n Around X: %f\n Around Y: %f\n Around Z: %f\n\n", rotX, rotY, rotZ);
-            linX = tag_trans(1) * 10;
-            linY = tag_trans(0) * 10;
-            linZ = tag_trans(2) * 10;
-
-            // Send relevant info to networkTables (it's negative so it's relative to tag)
-            robot_xEntry.Set(linX);
-            robot_yEntry.Set(-linY);
-            robot_thetaEntry.Set(-rotZ);
+            cout << "Rotation\n " << tag_rot * 10 * 39.37008 << endl << endl;
 
             hamm_hist[det->hamming]++;
             total_hamm_hist[det->hamming]++;

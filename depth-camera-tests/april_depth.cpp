@@ -25,12 +25,22 @@ of the authors and should not be interpreted as representing official policies,
 either expressed or implied, of the Regents of The University of Michigan.
 */
 
+#include <cmath>
 #include <iostream>
 #include <iomanip>
 #include <sstream>
 #include <librealsense2/h/rs_sensor.h>
 #include <librealsense2/rs.hpp>
+
 #include <opencv2/opencv.hpp>
+
+#include <Eigen/Eigen>
+
+#include <networktables/NetworkTableInstance.h>
+#include <networktables/NetworkTable.h>
+#include <networktables/DoubleTopic.h>
+#include <networktables/StringTopic.h>
+#include <networktables/BooleanTopic.h>
 
 extern "C" {
 #include <apriltag/apriltag.h>
@@ -55,8 +65,9 @@ extern "C" {
 
 using namespace std;
 using namespace cv;
+using namespace Eigen;
 
-int main(int argc, char *argv[])
+int main()
 {
     /**********************************************************************************************
      * DEPTH CAMPERA SETUP *
@@ -96,10 +107,43 @@ int main(int argc, char *argv[])
     int total_hamm_hist[HAMM_HIST_MAX];
     memset(total_hamm_hist, 0, sizeof(int)*HAMM_HIST_MAX);
 
+    /**********************************************************************************************
+     * Network Tables Setup *
+     ************************/
+
+    // Create networktables instan8ce and a table for vision
+    nt::NetworkTableInstance nt_inst= nt::NetworkTableInstance::GetDefault();
+
+    // Setup networktable client
+    nt_inst.StartClient4("jetson client");
+    nt_inst.SetServerTeam(2584);
+    nt_inst.StartDSClient();
+    nt_inst.SetServer("host", NT_DEFAULT_PORT4);
+
+    // Create tables
+    shared_ptr<nt::NetworkTable> visionTbl = nt_inst.GetTable("vision");
+    shared_ptr<nt::NetworkTable> localTbl = nt_inst.GetTable("vision/localization");
+
+    // Make a sanity check topic and an entry to publish/read from it; set initial value
+    nt::StringTopic sanitycheck = visionTbl->GetStringTopic("sanitycheck");
+    nt::StringEntry sanitycheckEntry = sanitycheck.GetEntry("DEFAULT SANITYCHECK SET BY JETSON");
+    sanitycheckEntry.Set("Hello, world. I've been set up!");
+
+    // Other vision topics
+    nt::BooleanTopic robot_pos_goodTopic = localTbl->GetBooleanTopic("robot_pos_good");
+    nt::DoubleTopic robot_xTopic = localTbl->GetDoubleTopic("x");
+    nt::DoubleTopic robot_yTopic = localTbl->GetDoubleTopic("y");
+    nt::DoubleTopic robot_thetaTopic = localTbl->GetDoubleTopic("theta");
+
+    nt::BooleanEntry robot_pos_goodEntry = robot_pos_goodTopic.GetEntry(false);
+    nt::DoubleEntry robot_xEntry = robot_xTopic.GetEntry(0.0);
+    nt::DoubleEntry robot_yEntry = robot_yTopic.GetEntry(0.0);
+    nt::DoubleEntry robot_thetaEntry = robot_thetaTopic.GetEntry(0.0);
 
     /**********************************************************************************************
      * THE LOOP *
      ************/
+
     // Camera warmup - dropping several first frames to let auto-exposure stabilize
     rs2::frameset frames;
 
@@ -108,14 +152,32 @@ int main(int argc, char *argv[])
     Mat matframe(Size(640, 480), CV_8UC3, (uint8_t *) frames.get_color_frame().get_data(), Mat::AUTO_STEP);
     Mat gray(Size(640, 480), CV_8UC1);
 
+    Matrix3f poseRotationMatrix;
+    Vector3f poseAngles; 
+
+    // Rotation of tag relative to camera
+    double rotX;
+    double rotY;
+    double rotZ;
+
+    // Translation of tag relative to camera
+    double linX;
+    double linY;
+    double linZ;
+
+    double poseErr;
+
     while (true) {
         errno = 0;
+
+        // Make sure networktables is working
+        sanitycheckEntry.Set("We have entered the loop (on the Jetson).");
         
         // Grab a frame
         frames = pipe.wait_for_frames();
         rs2::video_frame frame = frames.get_color_frame();
 
-        // The Mat business is only for displaying results
+        // The Mat business is only needed for displaying results
         matframe.data = (uint8_t *)frame.get_data();
         cvtColor(matframe, gray, COLOR_BGR2GRAY);
 
@@ -138,11 +200,23 @@ int main(int argc, char *argv[])
             exit(-1);
         }
 
-        // Draw detection outlines
+        // Tag doesn't exist
+        robot_pos_goodEntry.Set(false);
+
+        // Loop through detections
         for (int i = 0; i < zarray_size(detections); i++) {
+            // Get the detection
             apriltag_detection_t *det;
             zarray_get(detections, i, &det);
 
+            // Only use valid tag detections
+            if (det->id != 0)
+                continue;
+
+            // Tag found
+            robot_pos_goodEntry.Set(true);
+
+            // Apriltag pose estimation
             apriltag_pose_t pose;
             apriltag_detection_info_t info;
             info.det = det;
@@ -152,30 +226,68 @@ int main(int argc, char *argv[])
             info.cx = CAM_CX;
             info.cy = CAM_CY;
 
-            double err = estimate_tag_pose(&info, &pose);
+            poseErr = estimate_tag_pose(&info, &pose);
 
-            printf("Rotation\n    %f | %f | %f\n    %f | %f | %f\n    %f | %f | %f\n\n",
-                   pose.R->data[0], pose.R->data[1], pose.R->data[2],
-                   pose.R->data[3], pose.R->data[4], pose.R->data[5],
-                   pose.R->data[6], pose.R->data[7], pose.R->data[8]);
-            printf("translation\n X: %f\n Y: %f\n Z: %f\n",
-                   pose.t->data[0] * 393.701, pose.t->data[1] * 393.701, pose.t->data[2] * 393.701);
+            // Calculate pose angles based on rotation matrix
+            for (int i = 0; i < 3; i++)
+                for (int j = 0; j < 3; j++)
+                    poseRotationMatrix(i, j) = pose.R->data[3 * i + j];
+            poseAngles = poseRotationMatrix.eulerAngles(0, 1, 2);
 
-            printf("Err: %f\n\n\n", err);
+            // All rotations are *around* the axes they're named based on
+            rotX = poseAngles(0); // Left/right rel. to camera
+            rotZ = poseAngles(1); // Up/down rel. to camera
+            rotY = poseAngles(2); // Out/in rel. to camera
 
+            // Tranlation in meters
+            linX = pose.t->data[0] * 10;
+            linY = pose.t->data[2] * 10;
+            linZ = pose.t->data[1] * 10;
+
+            // Convert to degrees
+            rotX *= (180 / M_PI);
+            rotY *= (180 / M_PI);
+            rotZ *= (180 / M_PI);
+            rotZ += 180;
+
+            if (rotZ < 50 || rotZ > 310)
+            {
+                // Send relevant info to networkTables (it's negative so it's relative to tag)
+                robot_xEntry.Set(-linX);
+                robot_yEntry.Set(-linY);
+                robot_thetaEntry.Set(rotZ);
+
+                // Print info
+                printf("Translation\n X: %f\n Y: %f\n Z: %f\n", linX, linY, linZ);
+                printf("Rotation\n Around X: %f\n Around Y: %f\n Around Z: %f\n", rotX, rotY, rotZ);
+
+                printf("Pose Error: %f\n\n\n", poseErr);
+
+                // Rotation matrix
+                printf("Rotation\n    %f | %f | %f\n    %f | %f | %f\n    %f | %f | %f\n\n",
+                       pose.R->data[0], pose.R->data[1], pose.R->data[2],
+                       pose.R->data[3], pose.R->data[4], pose.R->data[5],
+                       pose.R->data[6], pose.R->data[7], pose.R->data[8]);
+            }
+
+            hamm_hist[det->hamming]++;
+            total_hamm_hist[det->hamming]++;
+
+            // Draw detection outline
             line(matframe, Point(det->p[0][0], det->p[0][1]),
                  Point(det->p[1][0], det->p[1][1]),
-                 Scalar(0xff, 0xff, 0xff), 2);
+                 Scalar(0xff, 0x00, 0x00), 2);
             line(matframe, Point(det->p[0][0], det->p[0][1]),
                  Point(det->p[3][0], det->p[3][1]),
-                 Scalar(0xff, 0xff, 0xff), 2);
+                 Scalar(0x00, 0xff, 0x00), 2);
             line(matframe, Point(det->p[1][0], det->p[1][1]),
                  Point(det->p[2][0], det->p[2][1]),
-                 Scalar(0xff, 0xff, 0xff), 2);
+                 Scalar(0x00, 0x00, 0xff), 2);
             line(matframe, Point(det->p[2][0], det->p[2][1]),
                  Point(det->p[3][0], det->p[3][1]),
-                 Scalar(0xff, 0xff, 0xff), 2);
+                 Scalar(0xff, 0x00, 0xff), 2);
 
+            // Label the tag
             stringstream ss;
             ss << det->id;
             String text = ss.str();
@@ -187,10 +299,7 @@ int main(int argc, char *argv[])
             putText(matframe, text, Point(det->c[0]-textsize.width/2,
                     det->c[1]+textsize.height/2),
                     fontface, fontscale, Scalar(0xff, 0x99, 0), 2);
-            hamm_hist[det->hamming]++;
-            total_hamm_hist[det->hamming]++;
         }
-        printf("-\n");
 
         apriltag_detections_destroy(detections);
 

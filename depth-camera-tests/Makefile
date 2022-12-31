@@ -1,5 +1,5 @@
 CXX = g++
-CXXFLAGS = -std=c++11
+CXXFLAGS = -std=c++20 -Wno-deprecated
 LDFLAGS = -lrealsense2
 LDFLAGS += -L/usr/lib/aarch64-linux-gnu
 # LDFLAGS += -lopencv_fuzzy
@@ -10,7 +10,7 @@ LDFLAGS += -L/usr/lib/aarch64-linux-gnu
 # LDFLAGS += -lopencv_cudabgsegm
 # LDFLAGS += -lopencv_cudafilters
 # LDFLAGS += -lopencv_stitching
-LDFLAGS += -lopencv_videoio
+# LDFLAGS += -lopencv_videoio
 # LDFLAGS += -lopencv_dnn_objdetect
 LDFLAGS += -lopencv_rgbd
 # LDFLAGS += -lopencv_cudaimgproc
@@ -35,7 +35,11 @@ LDFLAGS += -lopencv_highgui
 # LDFLAGS += -lopencv_cudawarping
 # LDFLAGS += -lopencv_features2d
 
+LDFLAGS += -lwpinet -lntcore
+
 CPPFLAGS = -I/usr/include/opencv4
+CPPFLAGS += -I/usr/local/include/wpiutil/ -I/usr/local/include/ntcore/ -I/usr/local/include/wpinet/
+CPPFLAGS += -I/usr/include/eigen3
 
 BGR_sample:
 	$(CXX) $(CXXFLAGS) BGR_sample.cpp $(LDFLAGS) $(CPPFLAGS) -o BGR_sample

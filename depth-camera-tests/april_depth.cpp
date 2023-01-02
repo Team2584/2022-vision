@@ -253,15 +253,29 @@ int main()
 
     double poseErr;
 
+    // Timing
+    TickMeter tm;
+    TickMeter looptm;
+    double currentTm;
+
     Eigen::Vector3d tag_trans;
     Eigen::Matrix3d tag_rot;
 
     while (true) {
+        looptm.reset();
+        looptm.start();
+        tm.reset();
+        tm.start();
         errno = 0;
 
         // Make sure networktables is working
         sanitycheckEntry.Set("We have entered the loop (on the Jetson).");
         
+        tm.stop();
+        currentTm = tm.getTimeMilli();
+        cout << "Time to send sanitycheck: " << currentTm << endl;
+        tm.reset();
+        tm.start();
         // Grab a frame
         frames = pipe.wait_for_frames();
         rs2::video_frame frame = frames.get_color_frame();
@@ -281,8 +295,19 @@ int main()
             .buf = gray.data,
         };
 
+        tm.stop();
+        currentTm = tm.getTimeMilli();
+        cout << "Time for frame grab & data moving: " << currentTm << endl;
+        tm.reset();
+        tm.start();
+
         // Do the detecting
         zarray_t *detections = apriltag_detector_detect(td, &im);
+        tm.stop();
+        currentTm = tm.getTimeMilli();
+        cout << "Time for detections: " << currentTm << endl;
+        tm.reset();
+        tm.start();
 
         if (errno == EAGAIN) {
             printf("Unable to create the %d threads requested.\n",td->nthreads);
@@ -361,11 +386,22 @@ int main()
             getRelativeTranslationRotation(det, TAG_SIZE, CAM_FX, CAM_FY,
                                            CAM_CX, CAM_CY,
                                            tag_trans, tag_rot);
+            tm.stop();
+            currentTm = tm.getTimeMilli();
+            cout << "Tme for pose estimation: " << currentTm << endl;
+            tm.reset();
+            tm.start();
 
             wRo_to_euler(tag_rot, rotX, rotZ, rotY);
-            cout << "Translation\n " << tag_trans * 10 * 39.37008 << endl;
+            tm.stop();
+            currentTm = tm.getTimeMilli();
+            cout << "Tme for angle conversion: " << currentTm << endl;
+            tm.reset();
+            tm.start();
+
+            //cout << "Translation\n " << tag_trans * 10 * 39.37008 << endl;
             //cout << "Rotation\n " << tag_rot << endl;
-            printf("Better Rotation\n Around X: %f\n Around Y: %f\n Around Z: %f\n\n", rotX, rotY, rotZ);
+            //printf("Better Rotation\n Around X: %f\n Around Y: %f\n Around Z: %f\n\n", rotX, rotY, rotZ);
             linX = tag_trans(1) * 10;
             linY = tag_trans(0) * 10;
             linZ = tag_trans(2) * 10;
@@ -374,6 +410,11 @@ int main()
             robot_xEntry.Set(linX);
             robot_yEntry.Set(-linY);
             robot_thetaEntry.Set(-rotZ);
+            tm.stop();
+            currentTm = tm.getTimeMilli();
+            cout << "Tme for writing to networktable: " << currentTm << endl;
+            tm.reset();
+            tm.start();
 
             hamm_hist[det->hamming]++;
             total_hamm_hist[det->hamming]++;
@@ -404,14 +445,30 @@ int main()
             putText(matframe, text, Point(det->c[0]-textsize.width/2,
                     det->c[1]+textsize.height/2),
                     fontface, fontscale, Scalar(0xff, 0x99, 0), 2);
+
+            tm.stop();
+            currentTm = tm.getTimeMilli();
+            cout << "Time for drawing lines: " << currentTm << endl;
+            tm.reset();
+            tm.start();
         }
 
         apriltag_detections_destroy(detections);
 
         imshow("Tag Detections", matframe);
+        tm.stop();
+        currentTm = tm.getTimeMilli();
+        cout << "Time for displaying image: " << currentTm << endl;
+        tm.start();
 
-        if (waitKey(1) == 'q')
-            break;
+        //if (waitKey(1) == 'q')
+            //break;
+
+        looptm.stop();
+        if (looptm.getTimeMilli() > 30)
+            printf("##############################################################\n");
+        cout << "Total Time: " << looptm.getTimeMilli() << endl;
+        cout << endl << endl;
     }
 
     apriltag_detector_destroy(td);

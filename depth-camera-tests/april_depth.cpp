@@ -264,7 +264,7 @@ int main()
     // Make a sanity check topic and an entry to publish/read from it; set initial
     // value
     nt::IntegerTopic sanitycheck = visionTbl->GetIntegerTopic("sanitycheck");
-    nt::IntegerEntry sanitycheckEntry = sanitycheck.GetEntry(0);
+    nt::IntegerEntry sanitycheckEntry = sanitycheck.GetEntry(0, {.periodic = 0.01});
     sanitycheckEntry.Set(1);
 
     // Other vision topics
@@ -273,10 +273,10 @@ int main()
     nt::DoubleTopic robot_yTopic = localTbl->GetDoubleTopic("y");
     nt::DoubleTopic robot_thetaTopic = localTbl->GetDoubleTopic("theta");
 
-    nt::BooleanEntry robot_pos_goodEntry = robot_pos_goodTopic.GetEntry(false);
-    nt::DoubleEntry robot_xEntry = robot_xTopic.GetEntry(0.0);
-    nt::DoubleEntry robot_yEntry = robot_yTopic.GetEntry(0.0);
-    nt::DoubleEntry robot_thetaEntry = robot_thetaTopic.GetEntry(0.0);
+    nt::BooleanEntry robot_pos_goodEntry = robot_pos_goodTopic.GetEntry(false, {.periodic = 0.01});
+    nt::DoubleEntry robot_xEntry = robot_xTopic.GetEntry(0.0, {.periodic = 0.01});
+    nt::DoubleEntry robot_yEntry = robot_yTopic.GetEntry(0.0, {.periodic = 0.01});
+    nt::DoubleEntry robot_thetaEntry = robot_thetaTopic.GetEntry(0.0, {.periodic = 0.01});
 
     /**********************************************************************************************
      * THE LOOP *

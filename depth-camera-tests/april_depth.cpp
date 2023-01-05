@@ -38,6 +38,7 @@ either expressed or implied, of the Regents of The University of Michigan.
 
 #include <networktables/BooleanTopic.h>
 #include <networktables/DoubleTopic.h>
+#include <networktables/IntegerTopic.h>
 #include <networktables/NetworkTable.h>
 #include <networktables/NetworkTableInstance.h>
 #include <networktables/StringTopic.h>
@@ -70,7 +71,7 @@ extern "C"
 #define CAM_FX 608
 #define CAM_FY 608
 
-#define TAG_SIZE 0.01524
+#define TAG_SIZE 0.14675
 
 #define IMG_MARGIN 20
 
@@ -176,18 +177,18 @@ void getRelativeTranslationRotation(apriltag_detection_t *det, double tag_size, 
 
 Eigen::Vector2d getRealTranslationRotation(double theta, double x, double y)
 {
-    printf("X: %f\nY: %f\nTheta: %f\n", x, y, theta);
+    printf("X: %f\nY: %f\nTheta: %f\n", x, y, theta * 180 / M_PI);
     Eigen::Matrix2d R;
     R(0, 0) = -cos(theta);
-    R(0, 1) = sin(theta);
     R(1, 0) = -sin(theta);
+    R(0, 1) = sin(theta);
     R(1, 1) = -cos(theta);
     Eigen::Vector2d T;
     T << x, y;
     cout << "Rotation Matrix:\n" << R << endl;
     cout << "Point:\n" << T << endl;
     Eigen::Vector2d trans = R * T;
-    cout << "Answer:\n" << trans << endl;
+    cout << "Rotated Point:\n" << trans << endl;
     return trans;
 }
 
@@ -262,9 +263,9 @@ int main()
 
     // Make a sanity check topic and an entry to publish/read from it; set initial
     // value
-    nt::StringTopic sanitycheck = visionTbl->GetStringTopic("sanitycheck");
-    nt::StringEntry sanitycheckEntry = sanitycheck.GetEntry("DEFAULT SANITYCHECK SET BY JETSON");
-    sanitycheckEntry.Set("Hello, world. I've been set up!");
+    nt::IntegerTopic sanitycheck = visionTbl->GetIntegerTopic("sanitycheck");
+    nt::IntegerEntry sanitycheckEntry = sanitycheck.GetEntry(0);
+    sanitycheckEntry.Set(1);
 
     // Other vision topics
     nt::BooleanTopic robot_pos_goodTopic = localTbl->GetBooleanTopic("robot_pos_good");
@@ -285,14 +286,13 @@ int main()
     // stabilize
     rs2::frameset frames;
 
-    for (int i = 0; i < 30; i++)
-    {
-        frames = pipe.wait_for_frames();
-    }
+    frames = pipe.wait_for_frames();
 
     Mat matframe(Size(640, 480), CV_8UC3, (uint8_t *)frames.get_color_frame().get_data(),
                  Mat::AUTO_STEP);
     Mat gray(Size(640, 480), CV_8UC1);
+    Mat lastgray(Size(640, 480), CV_8UC1);
+    Mat diff;
 
     Matrix3f poseRotationMatrix;
     Vector3f poseAngles;
@@ -312,6 +312,8 @@ int main()
 
     double last_rotZ = 0;
 
+    int counter = 2;
+
     while (true)
     {
         looptm.reset();
@@ -321,7 +323,9 @@ int main()
         errno = 0;
 
         // Make sure networktables is working
-        sanitycheckEntry.Set("We have entered the loop (on the Jetson).");
+        sanitycheckEntry.Set(counter);
+        cout << counter << endl;
+        counter++;
 
         tm.stop();
         tm.reset();
@@ -333,6 +337,14 @@ int main()
         // The Mat business is only needed for displaying results
         matframe.data = (uint8_t *)frame.get_data();
         cvtColor(matframe, gray, COLOR_BGR2GRAY);
+
+        diff = gray != lastgray;
+        if (countNonZero(diff) != 0)
+        {
+            printf("################## BROKEN ####################################\n");
+        }
+
+        lastgray = gray;
 
         int hamm_hist[HAMM_HIST_MAX];
         memset(hamm_hist, 0, sizeof(hamm_hist));
@@ -458,15 +470,15 @@ int main()
             tm.reset();
             tm.start();
 
-            cout << "Translation\n " << tag_trans * 10 * 39.37008 << endl;
+            // cout << "Translation\n " << tag_trans * 39.37008 << endl;
             // cout << "Rotation\n " << tag_rot << endl;
-            printf("Better Rotation\n Around X: %f\n Around Y: %f\n Around Z: %f\n\n", rotX, rotY,
-                   rotZ);
-            linX = tag_trans(1) * 10;
-            linY = tag_trans(0) * 10;
-            linZ = tag_trans(2) * 10;
+            // printf("Better Rotation\n Around X: %f\n Around Y: %f\n Around Z: %f\n\n", rotX,
+            // rotY, rotZ);
+            linX = tag_trans(1);
+            linY = tag_trans(0) + 0.381;
+            linZ = tag_trans(2);
 
-            Eigen::Vector2d thing = getRealTranslationRotation(rotZ, linX, linY);
+            Eigen::Vector2d point = getRealTranslationRotation(rotZ, linX, linY);
 
             // printf("X: %f\nY: %f\nZ:%f\n", linX, linY, linZ);
             // printf("Rotation: %f\n", rotZ * 180 / M_PI);
@@ -483,9 +495,10 @@ int main()
             last_rotZ = rotZ;
             // Send relevant info to networkTables (it's negative so it's relative to
             // tag)
-            robot_xEntry.Set(-thing[0]);
-            robot_yEntry.Set(thing[1]);
-            robot_thetaEntry.Set(-rotZ);
+            robot_xEntry.Set(-point[0]);
+            robot_yEntry.Set(point[1]);
+            robot_thetaEntry.Set(rotZ);
+
             tm.stop();
             tm.reset();
             tm.start();
@@ -537,11 +550,12 @@ int main()
         tm.start();
 
         // if (waitKey(1) == 'q')
-        //    break;
+        //   break;
 
         looptm.stop();
         // cout << "Total Time: " << looptm.getTimeMilli() << endl;
         cout << endl << endl;
+        nt_inst.Flush();
     }
 
     apriltag_detector_destroy(td);

@@ -324,7 +324,6 @@ int main()
 
         // Make sure networktables is working
         sanitycheckEntry.Set(counter);
-        cout << counter << endl;
         counter++;
 
         tm.stop();
@@ -384,7 +383,7 @@ int main()
             zarray_get(detections, i, &det);
 
             // Only use valid tag detections
-            if (det->id != 0)
+            if (det->id != 1)
                 continue;
 
             // Filter so it doesn't use detections close to the edge
@@ -475,7 +474,7 @@ int main()
             // printf("Better Rotation\n Around X: %f\n Around Y: %f\n Around Z: %f\n\n", rotX,
             // rotY, rotZ);
             linX = tag_trans(1);
-            linY = tag_trans(0) + 0.381;
+            linY = tag_trans(0) /* + 0.381*/;
             linZ = tag_trans(2);
 
             Eigen::Vector2d point = getRealTranslationRotation(rotZ, linX, linY);

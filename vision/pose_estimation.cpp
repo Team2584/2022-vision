@@ -3,12 +3,6 @@
 
 using namespace std;
 
-Eigen::Vector3d tag_trans;
-Eigen::Matrix3d tag_rot;
-double rotX;
-double rotY;
-double rotZ;
-
 //----------- From AprilNav -----------------------------
 // Normalize angle to be within the interval [-pi,pi].
 inline double standardRad(double t)
@@ -110,6 +104,12 @@ Eigen::Vector2d getRealTranslationRotation(double theta, double x, double y)
 
 void getRobotPosition(apriltag_detection_t *det, robot_position *pos)
 {
+    Eigen::Vector3d tag_trans;
+    Eigen::Matrix3d tag_rot;
+    double rotX;
+    double rotY;
+    double rotZ;
+
     getRelativeTranslationRotation(det, TAG_SIZE, CAM_FX, CAM_FY, CAM_CX, CAM_CY, tag_trans,
                                    tag_rot);
 
@@ -124,7 +124,7 @@ void getRobotPosition(apriltag_detection_t *det, robot_position *pos)
     double linY = tag_trans(0) /* + 0.381*/;
     // double linZ = tag_trans(2);
 
-    Eigen::Vector2d point = getRealTranslationRotation(rotZ, linX, linY);
+    Eigen::Vector2d point = getRealTranslationRotation(-rotZ, linX, linY);
 
     pos->x = -point(0);
     pos->y = point(1);

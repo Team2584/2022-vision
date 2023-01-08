@@ -3,7 +3,7 @@ import cv2 as cv
 import glob
 
 # Size of square in mm (needed for distance, not for intrinsic camera props)
-square_size = 22
+square_size = 25
 
 # termination criteria
 criteria = (cv.TERM_CRITERIA_EPS + cv.TERM_CRITERIA_MAX_ITER, 30, 0.001)

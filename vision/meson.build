@@ -30,7 +30,10 @@ wpi_incs = [
 
 # THE REAL STUFF
 
-src = ['main.cpp']
+src = [
+       'pose_estimation.cpp',
+       'main.cpp',
+      ]
 
 deps = [
         opencv_deps,

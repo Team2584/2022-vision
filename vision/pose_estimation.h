@@ -1,3 +1,6 @@
+#ifndef pose_estimation_h
+#define pose_estimation_h
+
 #include <Eigen/Eigen>
 #include <cmath>
 
@@ -25,3 +28,5 @@ typedef struct robot_position
 } robot_position;
 
 void getRobotPosition(apriltag_detection_t *det, robot_position *pos);
+
+#endif

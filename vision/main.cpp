@@ -1,18 +1,11 @@
 #include "main.h"
+#include "Cameras.h"
+#include "graphics_helpers.h"
 #include "pose_estimation.h"
 
 using namespace std;
 using namespace cv;
 using namespace Eigen;
-
-bool in_margin(double p[])
-{
-    if (p[0] < IMG_MARGIN || p[0] > DEPTH_WIDTH - IMG_MARGIN)
-        return true;
-    if (p[1] < IMG_MARGIN || p[1] > DEPTH_HEIGHT - IMG_MARGIN)
-        return true;
-    return false;
-}
 
 bool shouldIgnoreDetection(apriltag_detection_t *det)
 {
@@ -34,35 +27,8 @@ bool shouldIgnoreDetection(apriltag_detection_t *det)
 
 int main(void)
 {
-    /**********************************************************************************************
-     * DEPTH CAMPERA SETUP *
-     ***********************/
-
-    // Contruct a pipeline which abstracts the device
-    rs2::pipeline pipe;
-
-    // Create a configuration for configuring the pipeline with a non default
-    // profile
-    rs2::config cfg;
-
-    // Add desired streams to configuration
-    cfg.enable_stream(RS2_STREAM_COLOR, DEPTH_WIDTH, DEPTH_HEIGHT, RS2_FORMAT_BGR8, 60);
-    cfg.enable_stream(RS2_STREAM_DEPTH, DEPTH_WIDTH, DEPTH_HEIGHT, RS2_FORMAT_ANY, 60);
-
-    // Instruct pipeline to start streaming with the requested configuration
-    pipe.start(cfg);
-
-    /**********************************************************************************************
-     * LOGITECH CAMERA SETUP *
-     ************************/
-
-    VideoCapture cap(0);
-    if (cap.isOpened())
-    {
-        cap.set(CAP_PROP_FRAME_WIDTH, 640);
-        cap.set(CAP_PROP_FRAME_HEIGHT, 480);
-        cap.set(CAP_PROP_FPS, 30);
-    }
+    depthCamera depth(0, 640, 480, 60);
+    // flirCamera flir(0);
 
     /**********************************************************************************************
      * AprilTags Setup *
@@ -122,47 +88,35 @@ int main(void)
      * THE LOOP *
      ************/
 
-    rs2::frameset frames;
-
-    frames = pipe.wait_for_frames();
-
-    Mat matframe(Size(640, 480), CV_8UC3, (uint8_t *)frames.get_color_frame().get_data(),
-                 Mat::AUTO_STEP);
+    Mat frame;
     Mat gray(Size(640, 480), CV_8UC1);
-    Mat lastgray(Size(640, 480), CV_8UC1);
-    Mat diff;
 
     Matrix3f poseRotationMatrix;
     Vector3f poseAngles;
 
     double poseErr;
 
-    // Timing
-    TickMeter tm;
-    TickMeter looptm;
-
-    bool showmode = false;
-
     int counter = 2;
 
     while (true)
     {
+        printf("point 1-\n");
         errno = 0;
         int hamm_hist[HAMM_HIST_MAX];
         memset(hamm_hist, 0, sizeof(hamm_hist));
 
+        printf("point 2-\n");
         // Make sure networktables is working
         sanitycheckEntry.Set(counter);
         counter++;
 
+        printf("point 3-\n");
         // Grab a frame
-        frames = pipe.wait_for_frames();
-        rs2::video_frame frame = frames.get_color_frame();
+        frame = depth.getFrame();
+        cvtColor(frame, gray, COLOR_BGR2GRAY);
+        // gray = frame.clone();
 
-        // The Mat business is only needed for displaying results
-        matframe.data = (uint8_t *)frame.get_data();
-        cvtColor(matframe, gray, COLOR_BGR2GRAY);
-
+        printf("point 4-\n");
         // Make an image_u8_t header from the frame
         image_u8_t im = {
             .width = gray.cols,
@@ -171,93 +125,66 @@ int main(void)
             .buf = gray.data,
         };
 
+        printf("point 5-\n");
         // Detect Tags
         zarray_t *detections = apriltag_detector_detect(td, &im);
+        printf("point 6-\n");
         if (errno == EAGAIN)
         {
             printf("Unable to create the %d threads requested.\n", td->nthreads);
             exit(-1);
         }
 
+        printf("point 7-\n");
         robot_pos_goodEntry.Set(false);
 
+        printf("point 8-\n");
         // Loop through detections
         for (int i = 0; i < zarray_size(detections); i++)
         {
+            printf("point 1 --\n");
             // Get the detection
             apriltag_detection_t *det;
             zarray_get(detections, i, &det);
 
+            printf("point 2 --\n");
             if (shouldIgnoreDetection(det))
                 continue;
 
+            printf("point 3 --\n");
             robot_position pos;
             getRobotPosition(det, &pos);
 
+            printf("point 4 --\n");
             // Tag found
             robot_pos_goodEntry.Set(true);
 
+            printf("point 5 --\n");
             // Send relevant info to networkTables (it's negative so it's relative to
             // tag)
             robot_xEntry.Set(pos.x);
             robot_yEntry.Set(pos.y);
             robot_thetaEntry.Set(pos.theta);
 
-            tm.stop();
-            tm.reset();
-            tm.start();
-
+            printf("point 6 --\n");
             hamm_hist[det->hamming]++;
             total_hamm_hist[det->hamming]++;
 
-            // Draw detection outline
-            line(matframe, Point(det->p[0][0], det->p[0][1]), Point(det->p[1][0], det->p[1][1]),
-                 Scalar(0xff, 0x00, 0x00), 2);
-            line(matframe, Point(det->p[0][0], det->p[0][1]), Point(det->p[3][0], det->p[3][1]),
-                 Scalar(0x00, 0xff, 0x00), 2);
-            line(matframe, Point(det->p[1][0], det->p[1][1]), Point(det->p[2][0], det->p[2][1]),
-                 Scalar(0x00, 0x00, 0xff), 2);
-            line(matframe, Point(det->p[2][0], det->p[2][1]), Point(det->p[3][0], det->p[3][1]),
-                 Scalar(0xff, 0x00, 0xff), 2);
-
-            line(matframe, Point(IMG_MARGIN, DEPTH_HEIGHT - IMG_MARGIN),
-                 Point(DEPTH_WIDTH - IMG_MARGIN, DEPTH_HEIGHT - IMG_MARGIN),
-                 Scalar(0xff, 0xff, 0xff), 2);
-            line(matframe, Point(IMG_MARGIN, DEPTH_HEIGHT - IMG_MARGIN),
-                 Point(IMG_MARGIN, IMG_MARGIN), Scalar(0xff, 0xff, 0xff), 2);
-            line(matframe, Point(DEPTH_WIDTH - IMG_MARGIN, DEPTH_HEIGHT - IMG_MARGIN),
-                 Point(DEPTH_WIDTH - IMG_MARGIN, IMG_MARGIN), Scalar(0xff, 0xff, 0xff), 2);
-            line(matframe, Point(IMG_MARGIN, IMG_MARGIN),
-                 Point(DEPTH_WIDTH - IMG_MARGIN, IMG_MARGIN), Scalar(0xff, 0xff, 0xff), 2);
-
-            // Label the tag
-            stringstream ss;
-            ss << det->id;
-            String text = ss.str();
-            int fontface = FONT_HERSHEY_SCRIPT_SIMPLEX;
-            double fontscale = 1.0;
-            int baseline;
-            Size textsize = getTextSize(text, fontface, fontscale, 2, &baseline);
-            putText(matframe, text,
-                    Point(det->c[0] - textsize.width / 2, det->c[1] + textsize.height / 2),
-                    fontface, fontscale, Scalar(0xff, 0x99, 0), 2);
-
-            tm.stop();
-            tm.reset();
-            tm.start();
+            printf("point 7 --\n");
+            labelDetections(frame, det);
         }
 
+        printf("point 8 --\n");
+        drawMargins(frame);
+        imshow("Tag Detections", frame);
+
+        printf("point 9 --\n");
         apriltag_detections_destroy(detections);
 
-        imshow("Tag Detections", matframe);
-        tm.stop();
-        tm.start();
+        printf("point 10 --\n");
+        if (waitKey(1) == 'q')
+            break;
 
-        // if (waitKey(1) == 'q')
-        //   break;
-
-        looptm.stop();
-        // cout << "Total Time: " << looptm.getTimeMilli() << endl;
         cout << endl << endl;
         nt_inst.Flush();
     }

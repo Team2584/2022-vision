@@ -1,8 +1,9 @@
+#ifndef main_h
+#define main_h
+
 #include <cmath>
 #include <iomanip>
 #include <iostream>
-#include <librealsense2/h/rs_sensor.h>
-#include <librealsense2/rs.hpp>
 #include <sstream>
 
 #include <opencv2/opencv.hpp>
@@ -40,3 +41,5 @@ extern "C"
 #define DEPTH_HEIGHT 480
 
 #define IMG_MARGIN 20
+
+#endif

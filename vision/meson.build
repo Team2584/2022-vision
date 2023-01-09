@@ -28,10 +28,22 @@ wpi_incs = [
             include_directories('/usr/local/include/wpinet/'),
            ]
 
+spin_deps = [
+             cc.find_library('Spinnaker', dirs: '/opt/spinnaker/lib', required: true),
+            ]
+
+spin_incs = [
+             include_directories('/opt/spinnaker/include/')
+            ]
+
 # THE REAL STUFF
 
 src = [
        'pose_estimation.cpp',
+       'flirCamera.cpp',
+       'depthCamera.cpp',
+       'usbCamera.cpp',
+       'graphics_helpers.cpp',
        'main.cpp',
       ]
 
@@ -41,15 +53,17 @@ deps = [
         dependency('eigen3'),
         dependency('apriltag'),
         wpi_deps,
+        spin_deps,
        ]
 
 inc = [
        opencv_inc,
        wpi_incs,
+       spin_incs,
       ]
 
 executable('runvision',
            sources : src,
            dependencies : deps,
            include_directories : inc,
-           cpp_args : ['-std=c++20', '-Wno-deprecated'])
+           cpp_args : ['-Wno-deprecated', '-Wno-non-virtual-dtor'])

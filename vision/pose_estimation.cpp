@@ -124,6 +124,7 @@ void getRobotPosition(apriltag_detection_t *det, robot_position *pos)
     double linY = tag_trans(0) /* + 0.381*/;
     // double linZ = tag_trans(2);
 
+    // Tags can only be read upside-down if rotZ isn't flipped
     Eigen::Vector2d point = getRealTranslationRotation(-rotZ, linX, linY);
 
     pos->x = -point(0);

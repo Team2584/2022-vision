@@ -2,11 +2,6 @@
 
 using namespace std;
 
-Spinnaker::CameraPtr pCam = nullptr;
-// Flir camera globals
-Spinnaker::SystemPtr flirSystem = Spinnaker::System::GetInstance();
-Spinnaker::CameraList flirCamList = flirSystem->GetCameras();
-
 flirCamera::flirCamera(int camNum)
 {
     using namespace Spinnaker;

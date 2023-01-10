@@ -47,6 +47,10 @@ class flirCamera : abstractCamera
     int width = 720;
     cv::Mat lastframe;
     Spinnaker::ImagePtr frame = nullptr;
+    Spinnaker::CameraPtr pCam = nullptr;
+    // Flir camera globals
+    Spinnaker::SystemPtr flirSystem = Spinnaker::System::GetInstance();
+    Spinnaker::CameraList flirCamList = flirSystem->GetCameras();
 
   public:
     flirCamera(int camNum);
@@ -81,7 +85,6 @@ class depthCamera : abstractCamera
 class usbCamera : abstractCamera
 {
   private:
-    cv::VideoCapture cap;
 
   public:
     usbCamera(int camNum, int width, int height, int fps);

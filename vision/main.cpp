@@ -5,7 +5,6 @@
 
 using namespace std;
 using namespace cv;
-using namespace Eigen;
 
 bool shouldIgnoreDetection(apriltag_detection_t *det)
 {
@@ -25,10 +24,10 @@ bool shouldIgnoreDetection(apriltag_detection_t *det)
     return false;
 }
 
-int main(void)
+int main()
 {
-    // depthCamera depth(0, 640, 480, 60);
-    flirCamera flir(0);
+
+    depthCamera depth(0, 640, 480, 60);
 
     /**********************************************************************************************
      * AprilTags Setup *
@@ -88,11 +87,11 @@ int main(void)
      * THE LOOP *
      ************/
 
-    Mat frame(720, 540, CV_8UC3);
-    Mat gray(720, 540, CV_8UC1);
+    cv::Mat frame(cv::Size(640, 480), CV_8UC3);
+    cv::Mat gray(cv::Size(640, 480), CV_8UC1);
 
-    Matrix3f poseRotationMatrix;
-    Vector3f poseAngles;
+    Eigen::Matrix3f poseRotationMatrix;
+    Eigen::Vector3f poseAngles;
 
     double poseErr;
 
@@ -100,6 +99,7 @@ int main(void)
 
     while (true)
     {
+
         errno = 0;
         int hamm_hist[HAMM_HIST_MAX];
         memset(hamm_hist, 0, sizeof(hamm_hist));
@@ -109,12 +109,10 @@ int main(void)
         counter++;
 
         // Grab a frame
-        printf("point 1-\n");
-        gray = flir.getFrame();
+        frame = depth.getFrame();
         cvtColor(frame, gray, COLOR_BGR2GRAY);
-        printf("point 2-\n");
+
         cout << gray.cols << "|" << gray.rows << endl;
-        printf("point 3-\n");
 
         // Make an image_u8_t header from the frame
         image_u8_t im = {
@@ -123,21 +121,17 @@ int main(void)
             .stride = gray.cols,
             .buf = gray.data,
         };
-        printf("point 4-\n");
 
         // Detect Tags
         zarray_t *detections = apriltag_detector_detect(td, &im);
-        printf("point 6-\n");
         if (errno == EAGAIN)
         {
             printf("Unable to create the %d threads requested.\n", td->nthreads);
             exit(-1);
         }
 
-        printf("point 7-\n");
         robot_pos_goodEntry.Set(false);
 
-        printf("point 8-\n");
         // Loop through detections
         for (int i = 0; i < zarray_size(detections); i++)
         {
@@ -146,7 +140,9 @@ int main(void)
             zarray_get(detections, i, &det);
 
             if (shouldIgnoreDetection(det))
+            {
                 continue;
+            }
 
             robot_position pos;
             getRobotPosition(det, &pos);
@@ -166,21 +162,22 @@ int main(void)
             labelDetections(frame, det);
         }
 
-        printf("point 9-\n");
-        drawMargins(gray);
-        // imshow("Tag Detections", gray);
+        drawMargins(frame);
+
+        imshow("thing", frame);
 
         apriltag_detections_destroy(detections);
 
-        printf("point 10-\n");
-        // if (waitKey(1) == 'q')
-        // break;
+        if (waitKey(1) == 'q')
+            break;
 
         // nt_inst.Flush();
-    }
+        }
 
-    apriltag_detector_destroy(td);
-    tag16h5_destroy(tf);
+        frame.release();
+        apriltag_detector_destroy(td);
+        tag16h5_destroy(tf);
+        destroyAllWindows();
 
-    return 0;
+        return 0;
 }

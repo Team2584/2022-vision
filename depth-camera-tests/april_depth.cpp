@@ -32,8 +32,6 @@ either expressed or implied, of the Regents of The University of Michigan.
 #include <librealsense2/rs.hpp>
 #include <sstream>
 
-#include <opencv2/opencv.hpp>
-
 #include <Eigen/Eigen>
 
 #include <networktables/BooleanTopic.h>
@@ -383,7 +381,7 @@ int main()
             zarray_get(detections, i, &det);
 
             // Only use valid tag detections
-            if (det->id != 1)
+            if (det->id != 2)
                 continue;
 
             // Filter so it doesn't use detections close to the edge

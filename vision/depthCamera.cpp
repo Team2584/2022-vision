@@ -2,7 +2,7 @@
 
 using namespace std;
 
-depthCamera::depthCamera(int camNum, int width, int height, int fps)
+depthCamera::depthCamera(int camNum, int width, int height, int fps) : pipe{}, cfg{}
 {
     // Add desired streams to configuration
     cfg.enable_stream(RS2_STREAM_COLOR, width, height, RS2_FORMAT_BGR8, fps);
@@ -10,10 +10,6 @@ depthCamera::depthCamera(int camNum, int width, int height, int fps)
 
     // Instruct pipeline to start streaming with the requested configuration
     pipe.start(cfg);
-
-    rs2::frameset frames;
-
-    frames = pipe.wait_for_frames();
 }
 
 depthCamera::~depthCamera()
@@ -35,8 +31,7 @@ cv::Mat depthCamera::getFrame()
     rs2::frameset frames;
     frames = pipe.wait_for_frames();
 
-    cv::Mat matframe(cv::Size(640, 480), CV_8UC3, (uint8_t *)frames.get_color_frame().get_data(),
-                     cv::Mat::AUTO_STEP);
+    cv::Mat matframe(cv::Size(640, 480), CV_8UC3);
 
     rs2::video_frame frame = frames.get_color_frame();
 

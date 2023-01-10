@@ -3,7 +3,7 @@
 using namespace std;
 using namespace cv;
 
-usbCamera::usbCamera(int camNum, int width, int height, int fps)
+usbCamera::usbCamera(int camNum, int width, int height, int fps) : cap{camNum}
 {
     if (cap.isOpened())
     {

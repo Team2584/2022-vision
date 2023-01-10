@@ -4,10 +4,10 @@
 #include <cmath>
 #include <iomanip>
 #include <iostream>
+#include <librealsense2/h/rs_sensor.h>
+#include <librealsense2/rs.hpp>
 #include <sstream>
-
 #include <opencv2/opencv.hpp>
-
 #include <Eigen/Eigen>
 
 #include <networktables/BooleanTopic.h>
@@ -25,7 +25,7 @@ extern "C"
 }
 
 // Constants
-#define M_TWOPI 2 * M_PI
+#define M_TWOPI 6.283185307
 
 // AprilTag Parameters
 #define HAMM_HIST_MAX 10

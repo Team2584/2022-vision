@@ -28,6 +28,7 @@ int main()
 {
 
     depthCamera depth(0, 640, 480, 60);
+    flirCamera flir(0);
 
     /**********************************************************************************************
      * AprilTags Setup *
@@ -107,7 +108,6 @@ int main()
         // Make sure networktables is working
         sanitycheckEntry.Set(counter);
         counter++;
-
         // Grab a frame
         frame = depth.getFrame();
         cvtColor(frame, gray, COLOR_BGR2GRAY);
@@ -172,12 +172,12 @@ int main()
             break;
 
         // nt_inst.Flush();
-        }
+    }
 
-        frame.release();
-        apriltag_detector_destroy(td);
-        tag16h5_destroy(tf);
-        destroyAllWindows();
+    frame.release();
+    apriltag_detector_destroy(td);
+    tag16h5_destroy(tf);
+    destroyAllWindows();
 
-        return 0;
+    return 0;
 }

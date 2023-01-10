@@ -4,6 +4,7 @@ using namespace std;
 
 flirCamera::flirCamera(int camNum)
 {
+    /*
     using namespace Spinnaker;
     using namespace Spinnaker::GenApi;
     using namespace Spinnaker::GenICam;
@@ -108,21 +109,27 @@ flirCamera::flirCamera(int camNum)
     pCam->BeginAcquisition();
 
     lastframe.data = (uint8_t *)pCam->GetNextImage()->GetData();
+    */
 }
 
 flirCamera::~flirCamera()
 {
+    /*
     pCam = nullptr;
     flirCamList.Clear();
+    */
 }
 
 void flirCamera::setAutoExposure()
 {
+    /*
     pCam->ExposureAuto.SetValue(Spinnaker::ExposureAuto_Continuous);
+    */
 }
 
 void flirCamera::setManualExposure(int exposuretime = 0)
 {
+    /*
     // If no argument passed, use auto_once mode (this is the default)
     if (exposuretime == 0)
     {
@@ -134,10 +141,12 @@ void flirCamera::setManualExposure(int exposuretime = 0)
         pCam->ExposureMode.SetValue(Spinnaker::ExposureMode_Timed);
         pCam->ExposureTime.SetValue(exposuretime);
     }
+    */
 }
 
 void flirCamera::setManualGain(double value = 0)
 {
+    /*
     // If no argument passed, use auto_once mode (this is the default)
     if (value == 0)
     {
@@ -148,30 +157,35 @@ void flirCamera::setManualGain(double value = 0)
         pCam->GainAuto.SetValue(Spinnaker::GainAutoEnums::GainAuto_Off);
         pCam->Gain.SetValue(value);
     }
+    */
 }
 
 void flirCamera::setAutoGain()
 {
-    pCam->GainAuto.SetValue(Spinnaker::GainAutoEnums::GainAuto_Continuous);
+    /*
+        pCam->GainAuto.SetValue(Spinnaker::GainAutoEnums::GainAuto_Continuous);
+        */
 }
 
 cv::Mat flirCamera::getFrame()
 {
-        printf("point 1---\n");
-        printf("point 2---\n");
-        Spinnaker::ImageStatus framestatus;
-        printf("point 3---\n");
+    /*
+            printf("point 1---\n");
+            printf("point 2---\n");
+            Spinnaker::ImageStatus framestatus;
+            printf("point 3---\n");
 
-        frame = pCam->GetNextImage();
-        printf("point 4---\n");
+            frame = pCam->GetNextImage();
+            printf("point 4---\n");
 
-        framestatus = frame->GetImageStatus();
-        printf("point 5---\n");
-        if (framestatus != 0)
-            printf("FRAME ERROR");
+            framestatus = frame->GetImageStatus();
+            printf("point 5---\n");
+            if (framestatus != 0)
+                printf("FRAME ERROR");
 
-        printf("point 6---\n");
-        lastframe.data = (uint8_t *)frame->GetData();
-        printf("point 7---\n");
-        return lastframe;
+            printf("point 6---\n");
+            lastframe.data = (uint8_t *)frame->GetData();
+            printf("point 7---\n");
+            return lastframe;
+            */
 }

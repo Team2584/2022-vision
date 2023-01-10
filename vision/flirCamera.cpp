@@ -2,6 +2,11 @@
 
 using namespace std;
 
+Spinnaker::CameraPtr pCam = nullptr;
+// Flir camera globals
+Spinnaker::SystemPtr flirSystem = Spinnaker::System::GetInstance();
+Spinnaker::CameraList flirCamList = flirSystem->GetCameras();
+
 flirCamera::flirCamera(int camNum)
 {
     using namespace Spinnaker;
@@ -30,7 +35,7 @@ flirCamera::flirCamera(int camNum)
 
     printf("point 2\n");
     // Select camera
-    pCam = flirCamList.GetByIndex(camNum);
+    pCam = flirCamList.GetByIndex(0);
     pCam->Init();
 
     printf("point 3\n");
@@ -106,7 +111,8 @@ flirCamera::flirCamera(int camNum)
 
     printf("point 14\n");
     pCam->BeginAcquisition();
-    printf("point 15\n");
+
+    lastframe.data = (uint8_t *)pCam->GetNextImage()->GetData();
 }
 
 flirCamera::~flirCamera()
@@ -156,16 +162,21 @@ void flirCamera::setAutoGain()
 
 cv::Mat flirCamera::getFrame()
 {
-    Spinnaker::ImagePtr frame = nullptr;
-    Spinnaker::ImageStatus framestatus;
+        printf("point 1---\n");
+        printf("point 2---\n");
+        Spinnaker::ImageStatus framestatus;
+        printf("point 3---\n");
 
-    cv::Mat matframe(height, width, CV_8UC1);
+        frame = pCam->GetNextImage();
+        printf("point 4---\n");
 
-    frame = pCam->GetNextImage();
-    framestatus = frame->GetImageStatus();
-    if (framestatus != 0)
-        printf("FRAME ERROR");
+        framestatus = frame->GetImageStatus();
+        printf("point 5---\n");
+        if (framestatus != 0)
+            printf("FRAME ERROR");
 
-    matframe.data = (uint8_t *)frame->GetData();
-    return matframe;
+        printf("point 6---\n");
+        lastframe.data = (uint8_t *)frame->GetData();
+        printf("point 7---\n");
+        return lastframe;
 }

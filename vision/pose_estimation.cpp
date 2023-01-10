@@ -121,7 +121,7 @@ void getRobotPosition(apriltag_detection_t *det, robot_position *pos)
     // rotY, rotZ);
 
     double linX = tag_trans(1);
-    double linY = tag_trans(0) /* + 0.381*/;
+    double linY = tag_trans(0) + 0.381 + 5;
     // double linZ = tag_trans(2);
 
     // Tags can only be read upside-down if rotZ isn't flipped

@@ -27,8 +27,8 @@ bool shouldIgnoreDetection(apriltag_detection_t *det)
 
 int main(void)
 {
-    depthCamera depth(0, 640, 480, 60);
-    // flirCamera flir(0);
+    // depthCamera depth(0, 640, 480, 60);
+    flirCamera flir(0);
 
     /**********************************************************************************************
      * AprilTags Setup *
@@ -88,8 +88,8 @@ int main(void)
      * THE LOOP *
      ************/
 
-    Mat frame;
-    Mat gray(Size(640, 480), CV_8UC1);
+    Mat frame(720, 540, CV_8UC3);
+    Mat gray(720, 540, CV_8UC1);
 
     Matrix3f poseRotationMatrix;
     Vector3f poseAngles;
@@ -100,23 +100,22 @@ int main(void)
 
     while (true)
     {
-        printf("point 1-\n");
         errno = 0;
         int hamm_hist[HAMM_HIST_MAX];
         memset(hamm_hist, 0, sizeof(hamm_hist));
 
-        printf("point 2-\n");
         // Make sure networktables is working
         sanitycheckEntry.Set(counter);
         counter++;
 
-        printf("point 3-\n");
         // Grab a frame
-        frame = depth.getFrame();
+        printf("point 1-\n");
+        gray = flir.getFrame();
         cvtColor(frame, gray, COLOR_BGR2GRAY);
-        // gray = frame.clone();
+        printf("point 2-\n");
+        cout << gray.cols << "|" << gray.rows << endl;
+        printf("point 3-\n");
 
-        printf("point 4-\n");
         // Make an image_u8_t header from the frame
         image_u8_t im = {
             .width = gray.cols,
@@ -124,8 +123,8 @@ int main(void)
             .stride = gray.cols,
             .buf = gray.data,
         };
+        printf("point 4-\n");
 
-        printf("point 5-\n");
         // Detect Tags
         zarray_t *detections = apriltag_detector_detect(td, &im);
         printf("point 6-\n");
@@ -142,51 +141,42 @@ int main(void)
         // Loop through detections
         for (int i = 0; i < zarray_size(detections); i++)
         {
-            printf("point 1 --\n");
             // Get the detection
             apriltag_detection_t *det;
             zarray_get(detections, i, &det);
 
-            printf("point 2 --\n");
             if (shouldIgnoreDetection(det))
                 continue;
 
-            printf("point 3 --\n");
             robot_position pos;
             getRobotPosition(det, &pos);
 
-            printf("point 4 --\n");
             // Tag found
             robot_pos_goodEntry.Set(true);
 
-            printf("point 5 --\n");
             // Send relevant info to networkTables (it's negative so it's relative to
             // tag)
             robot_xEntry.Set(pos.x);
             robot_yEntry.Set(pos.y);
             robot_thetaEntry.Set(pos.theta);
 
-            printf("point 6 --\n");
             hamm_hist[det->hamming]++;
             total_hamm_hist[det->hamming]++;
 
-            printf("point 7 --\n");
             labelDetections(frame, det);
         }
 
-        printf("point 8 --\n");
-        drawMargins(frame);
-        imshow("Tag Detections", frame);
+        printf("point 9-\n");
+        drawMargins(gray);
+        // imshow("Tag Detections", gray);
 
-        printf("point 9 --\n");
         apriltag_detections_destroy(detections);
 
-        printf("point 10 --\n");
-        if (waitKey(1) == 'q')
-            break;
+        printf("point 10-\n");
+        // if (waitKey(1) == 'q')
+        // break;
 
-        cout << endl << endl;
-        nt_inst.Flush();
+        // nt_inst.Flush();
     }
 
     apriltag_detector_destroy(td);

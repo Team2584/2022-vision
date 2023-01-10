@@ -43,10 +43,10 @@ class abstractCamera
 class flirCamera : abstractCamera
 {
   private:
-    Spinnaker::CameraPtr pCam = nullptr;
-    // Flir camera globals
-    Spinnaker::SystemPtr flirSystem = Spinnaker::System::GetInstance();
-    Spinnaker::CameraList flirCamList = flirSystem->GetCameras();
+    int height = 540;
+    int width = 720;
+    cv::Mat lastframe;
+    Spinnaker::ImagePtr frame = nullptr;
 
   public:
     flirCamera(int camNum);

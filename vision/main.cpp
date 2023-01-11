@@ -29,6 +29,7 @@ int main()
 {
     flirCamera flir(0);
     depthCamera depth(0, 640, 480, 60);
+    usbCamera usb(0, 640, 480, 30);
 
     /**********************************************************************************************
      * AprilTags Setup *
@@ -92,6 +93,8 @@ int main()
     cv::Mat gray(cv::Size(640, 480), CV_8UC1);
     cv::Mat flirgray(cv::Size(720, 540), CV_8UC1);
     cv::Mat flirframe(cv::Size(720, 540), CV_8UC1);
+    cv::Mat usbframe(cv::Size(640, 480), CV_8UC3);
+    cv::Mat usbgray(cv::Size(640, 480), CV_8UC1);
 
     Eigen::Matrix3f poseRotationMatrix;
     Eigen::Vector3f poseAngles;
@@ -113,10 +116,11 @@ int main()
         // Grab a frame
         frame = depth.getFrame();
         flirgray = flir.getFrame();
+        usbframe = usb.getFrame();
         cvtColor(frame, gray, COLOR_BGR2GRAY);
         cvtColor(flirgray, flirframe, COLOR_GRAY2BGR);
 
-        cout << gray.cols << "|" << gray.rows << endl;
+        cout << flirgray.cols << "|" << flirgray.rows << endl;
 
         // Make an image_u8_t header from the frame
         image_u8_t im = {
@@ -170,6 +174,7 @@ int main()
 
         imshow("thing", frame);
         imshow("other thing", flirframe);
+        imshow("other other thing", usbframe);
 
         apriltag_detections_destroy(detections);
 

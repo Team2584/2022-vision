@@ -6,6 +6,7 @@
 using namespace std;
 using namespace cv;
 
+
 bool shouldIgnoreDetection(apriltag_detection_t *det)
 {
     // Only use valid tag detections
@@ -26,9 +27,8 @@ bool shouldIgnoreDetection(apriltag_detection_t *det)
 
 int main()
 {
-
-    depthCamera depth(0, 640, 480, 60);
     flirCamera flir(0);
+    depthCamera depth(0, 640, 480, 60);
 
     /**********************************************************************************************
      * AprilTags Setup *
@@ -90,6 +90,8 @@ int main()
 
     cv::Mat frame(cv::Size(640, 480), CV_8UC3);
     cv::Mat gray(cv::Size(640, 480), CV_8UC1);
+    cv::Mat flirgray(cv::Size(720, 540), CV_8UC1);
+    cv::Mat flirframe(cv::Size(720, 540), CV_8UC1);
 
     Eigen::Matrix3f poseRotationMatrix;
     Eigen::Vector3f poseAngles;
@@ -110,7 +112,9 @@ int main()
         counter++;
         // Grab a frame
         frame = depth.getFrame();
+        flirgray = flir.getFrame();
         cvtColor(frame, gray, COLOR_BGR2GRAY);
+        cvtColor(flirgray, flirframe, COLOR_GRAY2BGR);
 
         cout << gray.cols << "|" << gray.rows << endl;
 
@@ -165,6 +169,7 @@ int main()
         drawMargins(frame);
 
         imshow("thing", frame);
+        imshow("other thing", flirframe);
 
         apriltag_detections_destroy(detections);
 

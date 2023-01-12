@@ -18,7 +18,8 @@ extern "C"
 #define CAM_FX 608
 #define CAM_FY 608
 
-#define TAG_SIZE 0.14675
+#define TAG_SIZE 0.1524
+#define INCH 39.37
 
 typedef struct robot_position
 {

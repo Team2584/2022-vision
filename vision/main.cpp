@@ -27,9 +27,9 @@ bool shouldIgnoreDetection(apriltag_detection_t *det)
 
 int main()
 {
-    flirCamera flir(0);
+    // flirCamera flir(0);
     depthCamera depth(0, 640, 480, 60);
-    usbCamera usb(0, 640, 480, 30);
+    // usbCamera usb(0, 640, 480, 30);
 
     /**********************************************************************************************
      * AprilTags Setup *
@@ -103,6 +103,8 @@ int main()
 
     int counter = 2;
 
+    printf("x, y, theta, adjx, adjy\n");
+
     while (true)
     {
 
@@ -115,12 +117,10 @@ int main()
         counter++;
         // Grab a frame
         frame = depth.getFrame();
-        flirgray = flir.getFrame();
-        usbframe = usb.getFrame();
+        // flirgray = flir.getFrame();
+        // usbframe = usb.getFrame();
         cvtColor(frame, gray, COLOR_BGR2GRAY);
-        cvtColor(flirgray, flirframe, COLOR_GRAY2BGR);
-
-        cout << flirgray.cols << "|" << flirgray.rows << endl;
+        // cvtColor(flirgray, flirframe, COLOR_GRAY2BGR);
 
         // Make an image_u8_t header from the frame
         image_u8_t im = {
@@ -172,14 +172,14 @@ int main()
 
         drawMargins(frame);
 
-        imshow("thing", frame);
-        imshow("other thing", flirframe);
-        imshow("other other thing", usbframe);
+        // imshow("thing", frame);
+        // imshow("other thing", flirframe);
+        // imshow("other other thing", usbframe);
 
         apriltag_detections_destroy(detections);
 
-        if (waitKey(1) == 'q')
-            break;
+        // if (waitKey(1) == 'q')
+        // break;
 
         // nt_inst.Flush();
     }

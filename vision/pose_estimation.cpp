@@ -85,25 +85,40 @@ void getRelativeTranslationRotation(apriltag_detection_t *det, double tag_size, 
 }
 
 // ------------------ NOT from AprilNav ---------------------------------
-Eigen::Vector2d getRealTranslationRotation(double theta, double rotX, double x, double y)
+Eigen::Vector3d getRealTranslationRotation(Eigen::Vector3d pt, Eigen::Matrix3d rot)
 {
-    // printf("%f, %f, %f, ", x * INCH, y * INCH, theta * 180 / M_PI);
-    Eigen::Matrix2d R;
-    R(0, 0) = -cos(theta);
-    R(1, 0) = -sin(theta);
-    R(0, 1) = sin(theta);
-    R(1, 1) = -cos(theta);
+    // cout << "Point:" << pt << endl;
+    // cout << "Rotation Matrix:\n" << rot << endl;
+    Eigen::Vector3d newpt = -rot.transpose() * pt;
 
-    Eigen::Vector2d T;
-    T << x, y;
-    // cout << "Rotation Matrix:\n" << R << endl;
-    // cout << "Point:\n" << T << endl;
-    Eigen::Vector2d trans = (R * T);
+    cout << "Rotated Point:\n" << newpt << endl;
+    return newpt;
+}
 
-    // printf("%f, %f\n", trans(0) * INCH, trans(1) * INCH);
-    // cout << "Rotated Point:\n" << trans << endl;
-    trans(1) = trans(1) * (-sin(rotX) - cos(rotX));
-    return trans;
+Eigen::Matrix3d rotation_from_euler(double roll, double pitch, double yaw)
+{
+    // roll and pitch and yaw in radians
+    double su = sin(roll);
+    double cu = cos(roll);
+    double sv = sin(pitch);
+    double cv = cos(pitch);
+    double sw = sin(yaw);
+    double cw = cos(yaw);
+    Eigen::Matrix3d Rot_matrix(3, 3);
+    Rot_matrix(0, 0) = cv * cw;
+    Rot_matrix(0, 1) = su * sv * cw - cu * sw;
+    Rot_matrix(0, 2) = su * sw + cu * sv * cw;
+    Rot_matrix(1, 0) = cv * sw;
+    Rot_matrix(1, 1) = cu * cw + su * sv * sw;
+    Rot_matrix(1, 2) = cu * sv * sw - su * cw;
+    Rot_matrix(2, 0) = -sv;
+    Rot_matrix(2, 1) = su * cv;
+    Rot_matrix(2, 2) = cu * cv;
+    return Rot_matrix;
+}
+
+double aprilGetPose(apriltag_detection_t *det, apriltag_pose_t *pose)
+{
 }
 
 void getRobotPosition(apriltag_detection_t *det, robot_position *pos)
@@ -119,21 +134,20 @@ void getRobotPosition(apriltag_detection_t *det, robot_position *pos)
     getRelativeTranslationRotation(det, TAG_SIZE, CAM_FX, CAM_FY, CAM_CX, CAM_CY, tag_trans,
                                    tag_rot);
     wRo_to_euler(tag_rot, rotY, rotZ, rotX);
-
+    double newRotx = rotX * -1;
+    double newRoty = rotY;
+    double newRotz = rotZ * -1;
+    Eigen::Matrix3d rotationMatrix = rotation_from_euler(newRoty, newRotx, newRotz);
     // cout << "Translation\n " << tag_trans * 39.37008 << endl;
     // cout << "Rotation\n " << tag_rot << endl;
-    printf("Better Rotation\n Around X: %f\n Around Y: %f\n Around Z: %f\n", rotX, rotY, rotZ);
+    // printf("Better Rotation\n %f\n %f\n %f\n", rotX, rotY, rotZ);
 
-    double linX = tag_trans(1);
-    double linY = tag_trans(0) /* + 0.381 + 5*/;
-    double linZ = tag_trans(2);
-
-    printf("Pre Rotated: \n x: %f\n h: %f\n z: %f\n", linX, linY, linZ);
+    // printf("Pre Rotated: \n x: %f\n h: %f\n z: %f\n", linX, linY, linZ);
 
     // Tags can only be read upside-down if rotZ isn't flipped
-    Eigen::Vector2d point = getRealTranslationRotation(-rotZ, rotX, linX, linY);
+    Eigen::Vector3d point = getRealTranslationRotation(tag_trans, rotationMatrix);
 
-    printf("Rotated Point\n x: %f\n y: %f\n\n", point(0), point(1));
+    // printf("Rotated Point\n x: %f\n y: %f\n\n", point(0), point(1));
     pos->x = -point(0);
     pos->y = point(1);
     pos->theta = rotZ;

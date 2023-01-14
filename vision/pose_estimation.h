@@ -25,7 +25,9 @@ typedef struct robot_position
 {
     double x;
     double y;
+    double z;
     double theta; // in radians
+    int processing_time; // in microseconds
 } robot_position;
 
 void getRobotPosition(apriltag_detection_t *det, robot_position *pos);

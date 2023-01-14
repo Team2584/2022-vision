@@ -15,6 +15,7 @@
 #include <networktables/IntegerTopic.h>
 #include <networktables/NetworkTable.h>
 #include <networktables/NetworkTableInstance.h>
+#include <networktables/RawTopic.h>
 #include <networktables/StringTopic.h>
 
 extern "C"

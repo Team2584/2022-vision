@@ -76,14 +76,11 @@ int main()
 
     // Other vision topics
     nt::BooleanTopic robot_pos_goodTopic = localTbl->GetBooleanTopic("robot_pos_good");
-    nt::DoubleTopic robot_xTopic = localTbl->GetDoubleTopic("x");
-    nt::DoubleTopic robot_yTopic = localTbl->GetDoubleTopic("y");
-    nt::DoubleTopic robot_thetaTopic = localTbl->GetDoubleTopic("theta");
+    nt::RawTopic robot_pose_1Topic = localTbl->GetRawTopic("pose1");
 
     nt::BooleanEntry robot_pos_goodEntry = robot_pos_goodTopic.GetEntry(false, {.periodic = 0.01});
-    nt::DoubleEntry robot_xEntry = robot_xTopic.GetEntry(0.0, {.periodic = 0.01});
-    nt::DoubleEntry robot_yEntry = robot_yTopic.GetEntry(0.0, {.periodic = 0.01});
-    nt::DoubleEntry robot_thetaEntry = robot_thetaTopic.GetEntry(0.0, {.periodic = 0.01});
+    nt::RawEntry robot_pose_1Entry =
+        robot_pose_1Topic.GetEntry("robot_position", {}, {.periodic = 0.01});
 
     /**********************************************************************************************
      * THE LOOP *
@@ -160,9 +157,7 @@ int main()
 
             // Send relevant info to networkTables (it's negative so it's relative to
             // tag)
-            robot_xEntry.Set(pos.x);
-            robot_yEntry.Set(pos.y);
-            robot_thetaEntry.Set(pos.theta);
+            // robot_pose_1Entry.Set(*((void *)(&pos)));
 
             hamm_hist[det->hamming]++;
             total_hamm_hist[det->hamming]++;
@@ -172,14 +167,14 @@ int main()
 
         drawMargins(frame);
 
-        // imshow("thing", frame);
+        imshow("thing", frame);
         // imshow("other thing", flirframe);
         // imshow("other other thing", usbframe);
 
         apriltag_detections_destroy(detections);
 
-        // if (waitKey(1) == 'q')
-        // break;
+        if (waitKey(1) == 'q')
+            break;
 
         // nt_inst.Flush();
     }

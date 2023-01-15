@@ -1,4 +1,5 @@
 #include "pose_estimation.h"
+#include "Cameras.h"
 #include "main.h"
 
 using namespace std;
@@ -28,12 +29,11 @@ void wRo_to_euler(const Eigen::Matrix3d &wRo, double &yaw, double &pitch, double
     roll = standardRad(atan2(wRo(0, 2) * s - wRo(1, 2) * c, -wRo(0, 1) * s + wRo(1, 1) * c));
 }
 
-Eigen::Matrix4d getRelativeTransform(apriltag_detection_t *det, double tag_size, double fx,
-                                     double fy, double px, double py)
+Eigen::Matrix4d getRelativeTransform(apriltag_detection_t *det, camInfo *cam)
 {
     std::vector<cv::Point3f> objPts;
     std::vector<cv::Point2f> imgPts;
-    double s = tag_size / 2.;
+    double s = TAG_SIZE / 2.;
     objPts.push_back(cv::Point3f(-s, -s, 0));
     objPts.push_back(cv::Point3f(s, -s, 0));
     objPts.push_back(cv::Point3f(s, s, 0));
@@ -49,9 +49,8 @@ Eigen::Matrix4d getRelativeTransform(apriltag_detection_t *det, double tag_size,
     imgPts.push_back(cv::Point2f(p4.first, p4.second));
 
     cv::Mat rvec, tvec;
-    cv::Matx33d cameraMatrix(fx, 0, px, 0, fy, py, 0, 0, 1);
-    cv::Vec4f distParam(0, 0, 0, 0); // all 0?
-    cv::solvePnP(objPts, imgPts, cameraMatrix, distParam, rvec, tvec);
+
+    cv::solvePnP(objPts, imgPts, cam->camMatx, cam->distCoeffs, rvec, tvec);
     cv::Matx33d r;
     cv::Rodrigues(rvec, r);
     Eigen::Matrix3d wRo;
@@ -65,11 +64,10 @@ Eigen::Matrix4d getRelativeTransform(apriltag_detection_t *det, double tag_size,
     return T;
 }
 
-void getRelativeTranslationRotation(apriltag_detection_t *det, double tag_size, double fx,
-                                    double fy, double px, double py, Eigen::Vector3d &trans,
+void getRelativeTranslationRotation(apriltag_detection_t *det, camInfo *cam, Eigen::Vector3d &trans,
                                     Eigen::Matrix3d &rot)
 {
-    Eigen::Matrix4d T = getRelativeTransform(det, tag_size, fx, fy, px, py);
+    Eigen::Matrix4d T = getRelativeTransform(det, cam);
 
     // converting from camera frame (z forward, x right, y down) to
     // object frame (x forward, y left, z up)
@@ -91,7 +89,7 @@ Eigen::Vector3d getRealTranslationRotation(Eigen::Vector3d pt, Eigen::Matrix3d r
     // cout << "Rotation Matrix:\n" << rot << endl;
     Eigen::Vector3d newpt = -rot.transpose() * pt;
 
-    cout << "Rotated Point:\n" << newpt << endl;
+    cout << newpt << endl;
     return newpt;
 }
 
@@ -117,27 +115,20 @@ Eigen::Matrix3d rotation_from_euler(double roll, double pitch, double yaw)
     return Rot_matrix;
 }
 
-double aprilGetPose(apriltag_detection_t *det, apriltag_pose_t *pose)
-{
-}
-
-void getRobotPosition(apriltag_detection_t *det, robot_position *pos)
+void getRobotPosition(apriltag_detection_t *det, robot_position *pos, camInfo *cam)
 {
     Eigen::Vector3d tag_trans;
     Eigen::Matrix3d tag_rot;
-    Eigen::Matrix3d RZ;
-    Eigen::Matrix3d RX;
     double rotX;
     double rotY;
     double rotZ;
 
-    getRelativeTranslationRotation(det, TAG_SIZE, CAM_FX, CAM_FY, CAM_CX, CAM_CY, tag_trans,
-                                   tag_rot);
+    getRelativeTranslationRotation(det, cam, tag_trans, tag_rot);
     wRo_to_euler(tag_rot, rotY, rotZ, rotX);
-    double newRotx = rotX * -1;
-    double newRoty = rotY;
-    double newRotz = rotZ * -1;
-    Eigen::Matrix3d rotationMatrix = rotation_from_euler(newRoty, newRotx, newRotz);
+    rotX *= -1;
+    rotY *= 1;
+    rotZ *= -1;
+    Eigen::Matrix3d rotationMatrix = rotation_from_euler(rotY, rotX, rotZ);
     // cout << "Translation\n " << tag_trans * 39.37008 << endl;
     // cout << "Rotation\n " << tag_rot << endl;
     // printf("Better Rotation\n %f\n %f\n %f\n", rotX, rotY, rotZ);

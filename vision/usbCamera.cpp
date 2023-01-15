@@ -5,6 +5,7 @@ using namespace cv;
 
 usbCamera::usbCamera(int camNum, int width, int height, int fps) : cap{camNum}
 {
+    setDistCoeffs();
     if (cap.isOpened())
     {
         cap.set(CAP_PROP_FRAME_WIDTH, width);

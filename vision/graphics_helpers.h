@@ -19,7 +19,7 @@ extern "C"
 
 #define IMG_MARGIN 20
 
-bool in_margin(double p[]);
+bool in_margin(double p[], int width, int height);
 void labelDetections(cv::Mat frame, apriltag_detection_t *det);
 void drawMargins(cv::Mat frame);
 

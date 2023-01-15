@@ -16,6 +16,13 @@ typedef struct camPosOffset
     double elevAngle;
 } camPosOffset;
 
+typedef struct camInfo
+{
+    camPosOffset offset;
+    cv::Vec<double, 5> distCoeffs;
+    cv::Matx33d camMatx;
+} camInfo;
+
 class abstractCamera
 {
   protected:
@@ -24,23 +31,41 @@ class abstractCamera
     int fps;
 
   public:
-    camPosOffset offset;
-
+    camInfo info;
     virtual cv::Mat getFrame() = 0;
     virtual void setManualExposure(int exposuretime) = 0;
     virtual void setAutoExposure() = 0;
-    void setCamPosOffset(double x = 0, double y = 0, double z = 0, double theta = 0,
-                         double elevAngle = 0)
+    void setPosOffset(double x = 0, double y = 0, double z = 0, double theta = 0,
+                      double elevAngle = 0)
+
     {
-        offset.x = x;
-        offset.y = y;
-        offset.z = z;
-        offset.theta = theta;
-        offset.elevAngle = elevAngle;
+        info.offset.x = x;
+        info.offset.y = y;
+        info.offset.z = z;
+        info.offset.theta = theta;
+        info.offset.elevAngle = elevAngle;
+    }
+
+    void setDistCoeffs(double c0 = 0, double c1 = 0, double c2 = 0, double c3 = 0, double c4 = 0)
+    {
+        info.distCoeffs[0] = c0;
+        info.distCoeffs[1] = c1;
+        info.distCoeffs[2] = c2;
+        info.distCoeffs[3] = c3;
+        info.distCoeffs[4] = c4;
+    }
+
+    void setCamParams(double fx, double fy, double cx, double cy)
+    {
+        info.camMatx << 0, 0, 0, 0, 0, 0, 0, 0, 1;
+        info.camMatx(0, 0) = fx;
+        info.camMatx(1, 1) = fy;
+        info.camMatx(0, 2) = cx;
+        info.camMatx(1, 2) = cy;
     }
 };
 
-class flirCamera : abstractCamera
+class flirCamera : public abstractCamera
 {
   private:
     // Flir camera globals
@@ -61,7 +86,7 @@ class flirCamera : abstractCamera
     cv::Mat getFrame();
 };
 
-class depthCamera : abstractCamera
+class depthCamera : public abstractCamera
 {
   private:
     // Create a pipeline which abstracts the camera
@@ -80,7 +105,7 @@ class depthCamera : abstractCamera
     cv::Mat getFrame();
 };
 
-class usbCamera : abstractCamera
+class usbCamera : public abstractCamera
 {
   private:
     cv::VideoCapture cap;

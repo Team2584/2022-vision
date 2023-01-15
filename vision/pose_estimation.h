@@ -11,6 +11,8 @@ extern "C"
 #include <apriltag/tag16h5.h>
 }
 
+#include "Cameras.h"
+
 #define M_TWOPI 2 * M_PI
 
 #define CAM_CX 323
@@ -30,6 +32,6 @@ typedef struct robot_position
     int processing_time; // in microseconds
 } robot_position;
 
-void getRobotPosition(apriltag_detection_t *det, robot_position *pos);
+void getRobotPosition(apriltag_detection_t *det, robot_position *pos, camInfo *cam);
 
 #endif

@@ -3,11 +3,11 @@
 using namespace std;
 using namespace cv;
 
-bool in_margin(double p[])
+bool in_margin(double p[], int width, int height)
 {
-    if (p[0] < IMG_MARGIN || p[0] > DEPTH_WIDTH - IMG_MARGIN)
+    if (p[0] < IMG_MARGIN || p[0] > width - IMG_MARGIN)
         return true;
-    if (p[1] < IMG_MARGIN || p[1] > DEPTH_HEIGHT - IMG_MARGIN)
+    if (p[1] < IMG_MARGIN || p[1] > height - IMG_MARGIN)
         return true;
     return false;
 }
@@ -39,12 +39,14 @@ void labelDetections(Mat frame, apriltag_detection_t *det)
 
 void drawMargins(Mat frame)
 {
-    line(frame, Point(IMG_MARGIN, DEPTH_HEIGHT - IMG_MARGIN),
-         Point(DEPTH_WIDTH - IMG_MARGIN, DEPTH_HEIGHT - IMG_MARGIN), Scalar(0xff, 0xff, 0xff), 2);
-    line(frame, Point(IMG_MARGIN, DEPTH_HEIGHT - IMG_MARGIN), Point(IMG_MARGIN, IMG_MARGIN),
+    int cols = frame.cols;
+    int rows = frame.rows;
+    line(frame, Point(IMG_MARGIN, rows - IMG_MARGIN), Point(cols - IMG_MARGIN, rows - IMG_MARGIN),
          Scalar(0xff, 0xff, 0xff), 2);
-    line(frame, Point(DEPTH_WIDTH - IMG_MARGIN, DEPTH_HEIGHT - IMG_MARGIN),
-         Point(DEPTH_WIDTH - IMG_MARGIN, IMG_MARGIN), Scalar(0xff, 0xff, 0xff), 2);
-    line(frame, Point(IMG_MARGIN, IMG_MARGIN), Point(DEPTH_WIDTH - IMG_MARGIN, IMG_MARGIN),
+    line(frame, Point(IMG_MARGIN, rows - IMG_MARGIN), Point(IMG_MARGIN, IMG_MARGIN),
+         Scalar(0xff, 0xff, 0xff), 2);
+    line(frame, Point(cols - IMG_MARGIN, rows - IMG_MARGIN), Point(cols - IMG_MARGIN, IMG_MARGIN),
+         Scalar(0xff, 0xff, 0xff), 2);
+    line(frame, Point(IMG_MARGIN, IMG_MARGIN), Point(cols - IMG_MARGIN, IMG_MARGIN),
          Scalar(0xff, 0xff, 0xff), 2);
 }

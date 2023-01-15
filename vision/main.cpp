@@ -6,8 +6,7 @@
 using namespace std;
 using namespace cv;
 
-
-bool shouldIgnoreDetection(apriltag_detection_t *det)
+bool shouldIgnoreDetection(apriltag_detection_t *det, int frame_width, int frame_height)
 {
     // Only use valid tag detections
     if (det->id > 8 || det->id < 1)
@@ -16,7 +15,7 @@ bool shouldIgnoreDetection(apriltag_detection_t *det)
     // Filter so it doesn't use detections close to the edge
     for (int i = 0; i < 4; i++)
     {
-        if (in_margin(det->p[i]))
+        if (in_margin(det->p[i], frame_width, frame_height))
         {
             return true;
         }
@@ -27,8 +26,8 @@ bool shouldIgnoreDetection(apriltag_detection_t *det)
 
 int main()
 {
-    // flirCamera flir(0);
-    depthCamera depth(0, 640, 480, 60);
+    flirCamera flir(0);
+    // depthCamera depth(0, 640, 480, 60);
     // usbCamera usb(0, 640, 480, 30);
 
     /**********************************************************************************************
@@ -104,7 +103,6 @@ int main()
 
     while (true)
     {
-
         errno = 0;
         int hamm_hist[HAMM_HIST_MAX];
         memset(hamm_hist, 0, sizeof(hamm_hist));
@@ -113,18 +111,16 @@ int main()
         sanitycheckEntry.Set(counter);
         counter++;
         // Grab a frame
-        frame = depth.getFrame();
-        // flirgray = flir.getFrame();
+        flirgray = flir.getFrame();
         // usbframe = usb.getFrame();
-        cvtColor(frame, gray, COLOR_BGR2GRAY);
-        // cvtColor(flirgray, flirframe, COLOR_GRAY2BGR);
+        cvtColor(flirgray, flirframe, COLOR_GRAY2BGR);
 
         // Make an image_u8_t header from the frame
         image_u8_t im = {
-            .width = gray.cols,
-            .height = gray.rows,
-            .stride = gray.cols,
-            .buf = gray.data,
+            .width = flirgray.cols,
+            .height = flirgray.rows,
+            .stride = flirgray.cols,
+            .buf = flirgray.data,
         };
 
         // Detect Tags
@@ -144,30 +140,32 @@ int main()
             apriltag_detection_t *det;
             zarray_get(detections, i, &det);
 
-            if (shouldIgnoreDetection(det))
+            if (shouldIgnoreDetection(det, flirgray.cols, flirgray.rows))
             {
                 continue;
             }
 
+            printf("Position of %i:\n", det->id);
+
             robot_position pos;
-            getRobotPosition(det, &pos);
+            getRobotPosition(det, &pos, &flir.info);
 
             // Tag found
             robot_pos_goodEntry.Set(true);
 
             // Send relevant info to networkTables (it's negative so it's relative to
             // tag)
-            // robot_pose_1Entry.Set(*((void *)(&pos)));
+            // robot_pose_1Entry.Set(*((std::span<const unsigned char> *)(&pos)));
 
             hamm_hist[det->hamming]++;
             total_hamm_hist[det->hamming]++;
 
-            labelDetections(frame, det);
+            labelDetections(flirframe, det);
         }
 
-        drawMargins(frame);
+        drawMargins(flirframe);
 
-        imshow("thing", frame);
+        imshow("thing", flirframe);
         // imshow("other thing", flirframe);
         // imshow("other other thing", usbframe);
 

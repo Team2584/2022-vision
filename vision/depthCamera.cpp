@@ -4,6 +4,9 @@ using namespace std;
 
 depthCamera::depthCamera(int camNum, int width, int height, int fps) : pipe{}, cfg{}
 {
+    setCamParams(323, 245, 608, 608);
+    setDistCoeffs();
+
     // Add desired streams to configuration
     cfg.enable_stream(RS2_STREAM_COLOR, width, height, RS2_FORMAT_BGR8, fps);
     cfg.enable_stream(RS2_STREAM_DEPTH, width, height, RS2_FORMAT_ANY, fps);

@@ -10,6 +10,11 @@ flirCamera::flirCamera(int camNum)
 
     const unsigned int numCameras = flirCamList.GetSize();
 
+    // Set info
+    setDistCoeffs(-0.4435755056, 0.335254035289252, 0.0002605483032105911, 0.001042419159982218,
+                  0.2248450637613325);
+    setCamParams(571, 572, 346, 247);
+
     // Finish if there are no cameras
     if (numCameras == 0)
     {

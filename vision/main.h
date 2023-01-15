@@ -25,9 +25,6 @@ extern "C"
 #include <apriltag/tag16h5.h>
 }
 
-// Constants
-#define M_TWOPI 6.283185307
-
 // AprilTag Parameters
 #define HAMM_HIST_MAX 10
 #define HAMMING_NUMBER 0

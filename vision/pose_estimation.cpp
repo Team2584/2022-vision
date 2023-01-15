@@ -88,8 +88,6 @@ Eigen::Vector3d getRealTranslationRotation(Eigen::Vector3d pt, Eigen::Matrix3d r
     // cout << "Point:" << pt << endl;
     // cout << "Rotation Matrix:\n" << rot << endl;
     Eigen::Vector3d newpt = -rot.transpose() * pt;
-
-    cout << newpt << endl;
     return newpt;
 }
 
@@ -138,7 +136,8 @@ void getRobotPosition(apriltag_detection_t *det, robot_position *pos, camInfo *c
     // Tags can only be read upside-down if rotZ isn't flipped
     Eigen::Vector3d point = getRealTranslationRotation(tag_trans, rotationMatrix);
 
-    // printf("Rotated Point\n x: %f\n y: %f\n\n", point(0), point(1));
+    printf(" x: %f\n y: %f\n z: %f\n", point(1), point(0), point(2));
+    printf(" theta: %f\n", rotZ / M_PI * 180);
     pos->x = -point(0);
     pos->y = point(1);
     pos->theta = rotZ;

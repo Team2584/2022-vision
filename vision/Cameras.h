@@ -32,6 +32,8 @@ class abstractCamera
 
   public:
     camInfo info;
+    cv::Mat colorFrame(cv::Size(width, height), CV_8UC3);
+    cv::Mat grayFrame(cv::Size(width, height), CV_8UC1);
     virtual cv::Mat getFrame() = 0;
     virtual void setManualExposure(int exposuretime) = 0;
     virtual void setAutoExposure() = 0;

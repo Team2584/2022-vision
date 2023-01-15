@@ -20,7 +20,6 @@ bool shouldIgnoreDetection(apriltag_detection_t *det, int frame_width, int frame
             return true;
         }
     }
-
     return false;
 }
 

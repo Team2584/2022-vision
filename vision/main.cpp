@@ -7,6 +7,9 @@
 using namespace std;
 using namespace cv;
 
+int total_hamm_hist[HAMM_HIST_MAX];
+int hamm_hist[HAMM_HIST_MAX];
+
 int main()
 {
     flirCamera flir(0);
@@ -30,7 +33,6 @@ int main()
     td->debug = APRIL_DEBUG;
     td->refine_edges = REFINE_EDGES;
 
-    int total_hamm_hist[HAMM_HIST_MAX];
     memset(total_hamm_hist, 0, sizeof(int) * HAMM_HIST_MAX);
 
     /**********************************************************************************************
@@ -72,7 +74,6 @@ int main()
     while (true)
     {
         errno = 0;
-        int hamm_hist[HAMM_HIST_MAX];
         memset(hamm_hist, 0, sizeof(hamm_hist));
 
         // Make sure networktables is working
@@ -91,33 +92,16 @@ int main()
 
         robot_pos_goodEntry.Set(false);
 
-        zarray_t *detections = zarray_create(sizeof(apriltag_detection_t *));
+        zarray_t *poses = zarray_create(sizeof(robot_position *));
 
-        detectTags(flir.grayFrame, flir.colorFrame, td, detections);
-        detectTags(depth_blue.grayFrame, depth_blue.colorFrame, td, detections);
-        detectTags(depth_red.grayFrame, depth_red.colorFrame, td, detections);
+        getPoses(flir.grayFrame, flir.colorFrame, &flir.info, td, poses);
+        getPoses(depth_blue.grayFrame, depth_blue.colorFrame, &depth_blue.info, td, poses);
+        getPoses(depth_red.grayFrame, depth_red.colorFrame, &depth_red.info, td, poses);
 
-        // Loop through detections
-        for (int i = 0; i < zarray_size(detections); i++)
+        for (int i = 0; i < zarray_size(poses); i++)
         {
-            // Get the detection
-            apriltag_detection_t *det;
-            zarray_get(detections, i, &det);
-
-            printf("Position of %i:\n", det->id);
-
-            robot_position pos;
-            getRobotPosition(det, &pos, &flir.info);
-
-            // Tag found
-            robot_pos_goodEntry.Set(true);
-
-            // Send relevant info to networkTables (it's negative so it's relative to
-            // tag)
-            // robot_pose_1Entry.Set(*((std::span<const unsigned char> *)(&pos)));
-
-            hamm_hist[det->hamming]++;
-            total_hamm_hist[det->hamming]++;
+            robot_position *pos;
+            zarray_get(poses, i, &pos);
         }
 
         drawMargins(flir.colorFrame);
@@ -128,7 +112,6 @@ int main()
         imshow("depth_blue", depth_blue.colorFrame);
         imshow("depth_red", depth_red.colorFrame);
 
-        apriltag_detections_destroy(detections);
 
         if (waitKey(1) == 'q')
             break;

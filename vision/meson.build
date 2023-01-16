@@ -39,6 +39,7 @@ spin_incs = [
 # THE REAL STUFF
 
 src = [
+       'main.cpp',
        'pose_estimation.cpp',
        'detection.cpp',
        'Cameras.cpp',
@@ -46,7 +47,6 @@ src = [
        'depthCamera.cpp',
        'usbCamera.cpp',
        'graphics_helpers.cpp',
-       'main.cpp',
       ]
 
 deps = [

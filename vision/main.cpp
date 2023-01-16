@@ -7,29 +7,11 @@
 using namespace std;
 using namespace cv;
 
-bool shouldIgnoreDetection(apriltag_detection_t *det, int frame_width, int frame_height)
-{
-    // Only use valid tag detections
-    if (det->id > 8 || det->id < 1)
-        return true;
-
-    // Filter so it doesn't use detections close to the edge
-    for (int i = 0; i < 4; i++)
-    {
-        if (in_margin(det->p[i], frame_width, frame_height))
-        {
-            return true;
-        }
-    }
-    return false;
-}
-
 int main()
 {
     flirCamera flir(0);
     depthCamera depth_blue(DEPTH_BLUE, 640, 480, 60);
     depthCamera depth_red(DEPTH_RED, 640, 480, 60);
-    // usbCamera usb(0, 640, 480, 30);
 
     /**********************************************************************************************
      * AprilTags Setup *
@@ -111,9 +93,9 @@ int main()
 
         zarray_t *detections = zarray_create(sizeof(apriltag_detection_t *));
 
-        detectTags(flir.grayFrame, td, detections);
-        detectTags(depth_blue.grayFrame, td, detections);
-        detectTags(depth_red.grayFrame, td, detections);
+        detectTags(flir.grayFrame, flir.colorFrame, td, detections);
+        detectTags(depth_blue.grayFrame, depth_blue.colorFrame, td, detections);
+        detectTags(depth_red.grayFrame, depth_red.colorFrame, td, detections);
 
         // Loop through detections
         for (int i = 0; i < zarray_size(detections); i++)
@@ -121,11 +103,6 @@ int main()
             // Get the detection
             apriltag_detection_t *det;
             zarray_get(detections, i, &det);
-
-            if (shouldIgnoreDetection(det, flir.grayFrame.cols, flir.grayFrame.rows))
-            {
-                continue;
-            }
 
             printf("Position of %i:\n", det->id);
 
@@ -141,10 +118,6 @@ int main()
 
             hamm_hist[det->hamming]++;
             total_hamm_hist[det->hamming]++;
-
-            labelDetections(flir.colorFrame, det);
-            labelDetections(depth_blue.colorFrame, det);
-            labelDetections(depth_red.colorFrame, det);
         }
 
         drawMargins(flir.colorFrame);

@@ -23,7 +23,15 @@ typedef struct camPosOffset
 
 typedef struct camInfo
 {
+    // Camera offset from robot center
     camPosOffset offset;
+
+    /**********
+     * Camera matrix containing camera intrinsics, vector of destortion coefficients of the camera.
+     * For details on what these are, see the opencv camera calibration docs:
+     * https://docs.opencv.org/3.4/dc/dbb/tutorial_py_calibration.html
+     * All these values come from the scripts in ../camera-calibration
+     **********/
     cv::Vec<double, 5> distCoeffs;
     cv::Matx33d camMatx;
 } camInfo;

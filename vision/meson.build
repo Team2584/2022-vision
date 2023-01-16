@@ -40,6 +40,7 @@ spin_incs = [
 
 src = [
        'pose_estimation.cpp',
+       'detection.cpp',
        'Cameras.cpp',
        'flirCamera.cpp',
        'depthCamera.cpp',

@@ -1,5 +1,6 @@
 #include "main.h"
 #include "Cameras.h"
+#include "detection.h"
 #include "graphics_helpers.h"
 #include "pose_estimation.h"
 
@@ -25,8 +26,8 @@ bool shouldIgnoreDetection(apriltag_detection_t *det, int frame_width, int frame
 
 int main()
 {
-    flirCamera cam(0);
-    // depthCamera cam(0, 640, 480, 60);
+    flirCamera flir(0);
+    depthCamera depth(0, 640, 480, 60);
     // usbCamera usb(0, 640, 480, 30);
 
     /**********************************************************************************************
@@ -83,14 +84,7 @@ int main()
     /**********************************************************************************************
      * THE LOOP *
      ************/
-    Eigen::Matrix3f poseRotationMatrix;
-    Eigen::Vector3f poseAngles;
-
-    double poseErr;
-
     int counter = 2;
-
-    printf("x, y, theta, adjx, adjy\n");
 
     while (true)
     {
@@ -102,18 +96,9 @@ int main()
         sanitycheckEntry.Set(counter);
         counter++;
 
-        cam.getFrame();
+        flir.getFrame();
+        depth.getFrame();
 
-        // Make an image_u8_t header from the frame
-        image_u8_t im = {
-            .width = cam.grayFrame.cols,
-            .height = cam.grayFrame.rows,
-            .stride = cam.grayFrame.cols,
-            .buf = cam.grayFrame.data,
-        };
-
-        // Detect Tags
-        zarray_t *detections = apriltag_detector_detect(td, &im);
         if (errno == EAGAIN)
         {
             printf("Unable to create the %d threads requested.\n", td->nthreads);
@@ -122,6 +107,11 @@ int main()
 
         robot_pos_goodEntry.Set(false);
 
+        zarray_t *detections = zarray_create(sizeof(apriltag_detection_t *));
+
+        detectTags(flir.grayFrame, td, detections);
+        detectTags(depth.grayFrame, td, detections);
+
         // Loop through detections
         for (int i = 0; i < zarray_size(detections); i++)
         {
@@ -129,7 +119,7 @@ int main()
             apriltag_detection_t *det;
             zarray_get(detections, i, &det);
 
-            if (shouldIgnoreDetection(det, cam.grayFrame.cols, cam.grayFrame.rows))
+            if (shouldIgnoreDetection(det, flir.grayFrame.cols, flir.grayFrame.rows))
             {
                 continue;
             }
@@ -137,7 +127,7 @@ int main()
             printf("Position of %i:\n", det->id);
 
             robot_position pos;
-            getRobotPosition(det, &pos, &cam.info);
+            getRobotPosition(det, &pos, &flir.info);
 
             // Tag found
             robot_pos_goodEntry.Set(true);
@@ -149,12 +139,15 @@ int main()
             hamm_hist[det->hamming]++;
             total_hamm_hist[det->hamming]++;
 
-            labelDetections(cam.colorFrame, det);
+            labelDetections(flir.colorFrame, det);
+            labelDetections(depth.colorFrame, det);
         }
 
-        drawMargins(cam.colorFrame);
+        drawMargins(flir.colorFrame);
+        drawMargins(depth.colorFrame);
 
-        imshow("cam", cam.colorFrame);
+        imshow("flir", flir.colorFrame);
+        imshow("depth", depth.colorFrame);
 
         apriltag_detections_destroy(detections);
 

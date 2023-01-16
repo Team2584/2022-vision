@@ -27,7 +27,7 @@ bool shouldIgnoreDetection(apriltag_detection_t *det, int frame_width, int frame
 int main()
 {
     flirCamera flir(0);
-    // depthCamera depth(0, 640, 480, 60);
+    depthCamera depth(0, 640, 480, 60);
     // usbCamera usb(0, 640, 480, 30);
 
     /**********************************************************************************************
@@ -112,8 +112,10 @@ int main()
         counter++;
         // Grab a frame
         flirgray = flir.getFrame();
+        frame = depth.getFrame();
         // usbframe = usb.getFrame();
         cvtColor(flirgray, flirframe, COLOR_GRAY2BGR);
+        cvtColor(frame, gray, COLOR_BGR2GRAY);
 
         // Make an image_u8_t header from the frame
         image_u8_t im = {

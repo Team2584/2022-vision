@@ -4,7 +4,7 @@ using namespace std;
 
 depthCamera::depthCamera(int camNum, int width, int height, int fps) : pipe{}, cfg{}
 {
-    setCamParams(323, 245, 608, 608);
+    setCamParams(608, 608, 323, 245);
     setDistCoeffs();
 
     // Add desired streams to configuration

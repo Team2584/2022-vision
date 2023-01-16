@@ -13,10 +13,6 @@ extern "C"
 #include <apriltag/apriltag.h>
 }
 
-// Camera parameters
-#define DEPTH_WIDTH 640
-#define DEPTH_HEIGHT 480
-
 #define IMG_MARGIN 20
 
 bool in_margin(double p[], int width, int height);

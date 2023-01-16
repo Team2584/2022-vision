@@ -1,14 +1,16 @@
 #include "Cameras.h"
 
 using namespace std;
+using namespace cv;
 
 flirCamera::flirCamera(int camNum)
+    : colorFrame{cv::Size(width, height), CV_8UC3}, grayFrame{cv::Size(width, height), CV_8UC1}
 {
     using namespace Spinnaker;
     using namespace Spinnaker::GenApi;
     using namespace Spinnaker::GenICam;
 
-    const unsigned int numCameras = flirCamList.GetSize();
+    const int numCameras = flirCamList.GetSize();
 
     // Set info
     setDistCoeffs(-0.4435755056, 0.335254035289252, 0.0002605483032105911, 0.001042419159982218,
@@ -142,19 +144,17 @@ void flirCamera::setAutoGain()
     pCam->GainAuto.SetValue(Spinnaker::GainAutoEnums::GainAuto_Continuous);
 }
 
-cv::Mat flirCamera::getFrame()
+void flirCamera::getFrame()
 {
-    cv::Mat matframe(cv::Size(720, 540), CV_8UC1);
-
     Spinnaker::ImagePtr frame = nullptr;
     Spinnaker::ImageStatus framestatus;
-
     frame = pCam->GetNextImage();
 
     framestatus = frame->GetImageStatus();
     if (framestatus != 0)
         printf("FRAME ERROR");
 
-    matframe.data = (uint8_t *)frame->GetData();
-    return matframe;
+    grayFrame.data = (uint8_t *)frame->GetData();
+    cv::cvtColor(grayFrame, colorFrame, cv::COLOR_GRAY2BGR);
+    frame->Release();
 }

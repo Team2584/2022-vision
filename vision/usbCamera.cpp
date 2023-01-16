@@ -3,7 +3,9 @@
 using namespace std;
 using namespace cv;
 
-usbCamera::usbCamera(int camNum, int width, int height, int fps) : cap{camNum}
+usbCamera::usbCamera(int camNum, int width, int height, int fps)
+    : cap{camNum}, colorFrame{cv::Size(width, height), CV_8UC3}, grayFrame{cv::Size(width, height),
+                                                                           CV_8UC1}
 {
     setDistCoeffs();
     if (cap.isOpened())
@@ -38,9 +40,8 @@ void usbCamera::setAutoFocus()
     // TODO impl
 }
 
-cv::Mat usbCamera::getFrame()
+void usbCamera::getFrame()
 {
-    cv::Mat frame;
-    cap >> frame;
-    return frame;
+    cap >> colorFrame;
+    cvtColor(colorFrame, grayFrame, COLOR_BGR2GRAY);
 }

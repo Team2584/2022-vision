@@ -25,8 +25,8 @@ bool shouldIgnoreDetection(apriltag_detection_t *det, int frame_width, int frame
 
 int main()
 {
-    flirCamera flir(0);
-    // depthCamera depth(0, 640, 480, 60);
+    flirCamera cam(0);
+    // depthCamera cam(0, 640, 480, 60);
     // usbCamera usb(0, 640, 480, 30);
 
     /**********************************************************************************************
@@ -83,14 +83,6 @@ int main()
     /**********************************************************************************************
      * THE LOOP *
      ************/
-
-    cv::Mat frame(cv::Size(640, 480), CV_8UC3);
-    cv::Mat gray(cv::Size(640, 480), CV_8UC1);
-    cv::Mat flirgray(cv::Size(720, 540), CV_8UC1);
-    cv::Mat flirframe(cv::Size(720, 540), CV_8UC1);
-    cv::Mat usbframe(cv::Size(640, 480), CV_8UC3);
-    cv::Mat usbgray(cv::Size(640, 480), CV_8UC1);
-
     Eigen::Matrix3f poseRotationMatrix;
     Eigen::Vector3f poseAngles;
 
@@ -109,17 +101,15 @@ int main()
         // Make sure networktables is working
         sanitycheckEntry.Set(counter);
         counter++;
-        // Grab a frame
-        flirgray = flir.getFrame();
-        // usbframe = usb.getFrame();
-        cvtColor(flirgray, flirframe, COLOR_GRAY2BGR);
+
+        cam.getFrame();
 
         // Make an image_u8_t header from the frame
         image_u8_t im = {
-            .width = flirgray.cols,
-            .height = flirgray.rows,
-            .stride = flirgray.cols,
-            .buf = flirgray.data,
+            .width = cam.grayFrame.cols,
+            .height = cam.grayFrame.rows,
+            .stride = cam.grayFrame.cols,
+            .buf = cam.grayFrame.data,
         };
 
         // Detect Tags
@@ -139,7 +129,7 @@ int main()
             apriltag_detection_t *det;
             zarray_get(detections, i, &det);
 
-            if (shouldIgnoreDetection(det, flirgray.cols, flirgray.rows))
+            if (shouldIgnoreDetection(det, cam.grayFrame.cols, cam.grayFrame.rows))
             {
                 continue;
             }
@@ -147,7 +137,7 @@ int main()
             printf("Position of %i:\n", det->id);
 
             robot_position pos;
-            getRobotPosition(det, &pos, &flir.info);
+            getRobotPosition(det, &pos, &cam.info);
 
             // Tag found
             robot_pos_goodEntry.Set(true);
@@ -159,14 +149,12 @@ int main()
             hamm_hist[det->hamming]++;
             total_hamm_hist[det->hamming]++;
 
-            labelDetections(flirframe, det);
+            labelDetections(cam.colorFrame, det);
         }
 
-        drawMargins(flirframe);
+        drawMargins(cam.colorFrame);
 
-        imshow("thing", flirframe);
-        // imshow("other thing", flirframe);
-        // imshow("other other thing", usbframe);
+        imshow("cam", cam.colorFrame);
 
         apriltag_detections_destroy(detections);
 
@@ -176,7 +164,6 @@ int main()
         // nt_inst.Flush();
     }
 
-    frame.release();
     apriltag_detector_destroy(td);
     tag16h5_destroy(tf);
     destroyAllWindows();

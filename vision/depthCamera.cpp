@@ -1,11 +1,17 @@
 #include "Cameras.h"
 
 using namespace std;
+using namespace cv;
 
-depthCamera::depthCamera(int camNum, int width, int height, int fps) : pipe{}, cfg{}
+depthCamera::depthCamera(int camNum, int width, int height, int fps)
+    : pipe{}, cfg{}, colorFrame{cv::Size(width, height), CV_8UC3}, grayFrame{
+                                                                       cv::Size(width, height),
+                                                                       CV_8UC1}
 {
     setCamParams(323, 245, 608, 608);
     setDistCoeffs();
+    this->width = width;
+    this->height = height;
 
     // Add desired streams to configuration
     cfg.enable_stream(RS2_STREAM_COLOR, width, height, RS2_FORMAT_BGR8, fps);
@@ -29,16 +35,12 @@ void depthCamera::setAutoExposure()
     // TODO impl
 }
 
-cv::Mat depthCamera::getFrame()
+void depthCamera::getFrame()
 {
     rs2::frameset frames;
     frames = pipe.wait_for_frames();
-
-    cv::Mat matframe(cv::Size(640, 480), CV_8UC3);
-
     rs2::video_frame frame = frames.get_color_frame();
 
-    matframe.data = (uint8_t *)frame.get_data();
-
-    return matframe;
+    colorFrame.data = (uint8_t *)frame.get_data();
+    cv::cvtColor(colorFrame, grayFrame, cv::COLOR_BGR2GRAY);
 }

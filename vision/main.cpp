@@ -27,7 +27,8 @@ bool shouldIgnoreDetection(apriltag_detection_t *det, int frame_width, int frame
 int main()
 {
     flirCamera flir(0);
-    depthCamera depth(0, 640, 480, 60);
+    depthCamera depth_blue(DEPTH_BLUE, 640, 480, 60);
+    depthCamera depth_red(DEPTH_RED, 640, 480, 60);
     // usbCamera usb(0, 640, 480, 30);
 
     /**********************************************************************************************
@@ -97,7 +98,8 @@ int main()
         counter++;
 
         flir.getFrame();
-        depth.getFrame();
+        depth_blue.getFrame();
+        depth_red.getFrame();
 
         if (errno == EAGAIN)
         {
@@ -110,7 +112,8 @@ int main()
         zarray_t *detections = zarray_create(sizeof(apriltag_detection_t *));
 
         detectTags(flir.grayFrame, td, detections);
-        detectTags(depth.grayFrame, td, detections);
+        detectTags(depth_blue.grayFrame, td, detections);
+        detectTags(depth_red.grayFrame, td, detections);
 
         // Loop through detections
         for (int i = 0; i < zarray_size(detections); i++)
@@ -140,14 +143,17 @@ int main()
             total_hamm_hist[det->hamming]++;
 
             labelDetections(flir.colorFrame, det);
-            labelDetections(depth.colorFrame, det);
+            labelDetections(depth_blue.colorFrame, det);
+            labelDetections(depth_red.colorFrame, det);
         }
 
         drawMargins(flir.colorFrame);
-        drawMargins(depth.colorFrame);
+        drawMargins(depth_blue.colorFrame);
+        drawMargins(depth_red.colorFrame);
 
         imshow("flir", flir.colorFrame);
-        imshow("depth", depth.colorFrame);
+        imshow("depth_blue", depth_blue.colorFrame);
+        imshow("depth_red", depth_red.colorFrame);
 
         apriltag_detections_destroy(detections);
 

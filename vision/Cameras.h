@@ -8,6 +8,10 @@
 #include <librealsense2/rs.hpp>
 #include <opencv2/opencv.hpp>
 
+// Aliases for depth camera serial numbers; color-coded with tape on each physical camera
+#define DEPTH_BLUE "017322071728"
+#define DEPTH_RED "939622072805"
+
 typedef struct camPosOffset
 {
     double x;
@@ -83,7 +87,7 @@ class depthCamera : public abstractCamera
     cv::Mat colorFrame;
     cv::Mat grayFrame;
 
-    depthCamera(int camNum, int width, int height, int fps);
+    depthCamera(std::string camSerial, int width, int height, int fps);
     ~depthCamera();
 
     void setManualExposure(int exposuretime);

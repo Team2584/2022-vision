@@ -3,7 +3,7 @@
 using namespace std;
 using namespace cv;
 
-depthCamera::depthCamera(int camNum, int width, int height, int fps)
+depthCamera::depthCamera(string camSerial, int width, int height, int fps)
     : pipe{}, cfg{}, colorFrame{cv::Size(width, height), CV_8UC3}, grayFrame{
                                                                        cv::Size(width, height),
                                                                        CV_8UC1}
@@ -13,12 +13,18 @@ depthCamera::depthCamera(int camNum, int width, int height, int fps)
     this->width = width;
     this->height = height;
 
+    // Select camera by serial number
+    cfg.enable_device(camSerial);
+
     // Add desired streams to configuration
     cfg.enable_stream(RS2_STREAM_COLOR, width, height, RS2_FORMAT_BGR8, fps);
     cfg.enable_stream(RS2_STREAM_DEPTH, width, height, RS2_FORMAT_ANY, fps);
 
     // Instruct pipeline to start streaming with the requested configuration
-    pipe.start(cfg);
+    rs2::pipeline_profile prof = pipe.start(cfg);
+
+    // Disgusting one-liner to disable laser
+    prof.get_device().first<rs2::depth_sensor>().set_option(RS2_OPTION_EMITTER_ENABLED, 0.f);
 }
 
 depthCamera::~depthCamera()

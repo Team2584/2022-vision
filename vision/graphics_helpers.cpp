@@ -47,4 +47,10 @@ void drawMargins(Mat frame)
          Point(DEPTH_WIDTH - IMG_MARGIN, IMG_MARGIN), Scalar(0xff, 0xff, 0xff), 2);
     line(frame, Point(IMG_MARGIN, IMG_MARGIN), Point(DEPTH_WIDTH - IMG_MARGIN, IMG_MARGIN),
          Scalar(0xff, 0xff, 0xff), 2);
+
+    line(frame, Point(DEPTH_WIDTH / 2, DEPTH_HEIGHT / 2 + 10),
+         Point(DEPTH_WIDTH / 2, DEPTH_HEIGHT / 2 - 10), Scalar(0xff, 0xff, 0xff), 2);
+
+    line(frame, Point(DEPTH_WIDTH / 2 - 10, DEPTH_HEIGHT / 2),
+         Point(DEPTH_WIDTH / 2 + 10, DEPTH_HEIGHT / 2), Scalar(0xff, 0xff, 0xff), 2);
 }

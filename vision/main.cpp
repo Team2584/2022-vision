@@ -99,6 +99,11 @@ int main()
     double poseErr;
 
     int counter = 2;
+    int avgCounter = 0;
+    double xTot = 0;
+    double yTot = 0;
+    double zTot = 0;
+    double thetaTot = 0;
 
     printf("x, y, theta, adjx, adjy\n");
 
@@ -112,6 +117,7 @@ int main()
         // Make sure networktables is working
         sanitycheckEntry.Set(counter);
         counter++;
+        avgCounter++;
         // Grab a frame
         frame = depth.getFrame();
         // flirgray = flir.getFrame();
@@ -151,6 +157,10 @@ int main()
 
             robot_position pos;
             getRobotPosition(det, &pos);
+            xTot += pos.x;
+            yTot += pos.y;
+            zTot += pos.z;
+            thetaTot += pos.theta;
 
             // Tag found
             robot_pos_goodEntry.Set(true);
@@ -164,6 +174,17 @@ int main()
 
             labelDetections(frame, det);
         }
+
+        if (avgCounter == 100)
+        {
+            printf("    avg x: %f\n    avg y: %f\n    avg z: %f\n    avg theta: %f    \n\n",
+                   xTot / 100, yTot / 100, zTot / 100, thetaTot / 100);
+            xTot = 0;
+            yTot = 0;
+            zTot = 0;
+            thetaTot = 0;
+            avgCounter = 0;
+            }
 
         drawMargins(frame);
 

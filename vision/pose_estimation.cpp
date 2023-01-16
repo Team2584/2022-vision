@@ -50,7 +50,8 @@ Eigen::Matrix4d getRelativeTransform(apriltag_detection_t *det, double tag_size,
 
     cv::Mat rvec, tvec;
     cv::Matx33d cameraMatrix(fx, 0, px, 0, fy, py, 0, 0, 1);
-    cv::Vec4f distParam(0, 0, 0, 0); // all 0?
+    cv::Vec<float, 5> distParam(0.09116903370720442, 0.2567349843314421, -0.003936586357063021,
+                                0.001658039412119442, -1.633408316803933);
     cv::solvePnP(objPts, imgPts, cameraMatrix, distParam, rvec, tvec);
     cv::Matx33d r;
     cv::Rodrigues(rvec, r);
@@ -91,7 +92,7 @@ Eigen::Vector3d getRealTranslationRotation(Eigen::Vector3d pt, Eigen::Matrix3d r
     // cout << "Rotation Matrix:\n" << rot << endl;
     Eigen::Vector3d newpt = -rot.transpose() * pt;
 
-    cout << "Rotated Point:\n" << newpt << endl;
+    // cout << "Rotated Point:\n" << newpt << endl;
     return newpt;
 }
 
@@ -150,5 +151,6 @@ void getRobotPosition(apriltag_detection_t *det, robot_position *pos)
     // printf("Rotated Point\n x: %f\n y: %f\n\n", point(0), point(1));
     pos->x = -point(0);
     pos->y = point(1);
+    pos->z = point(2);
     pos->theta = rotZ;
 }

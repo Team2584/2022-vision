@@ -58,3 +58,6 @@ clean_obj:
 clean: clean_obj
 	rm -f ${OUTPUTNAME}
 	@echo "all cleaned up!"
+
+intel:
+	g++ -ggdb -std=c++20 -Wno-deprecated depth-calib.cpp -lrealsense2 -L/usr/lib/aarch64-linux-gnu -lopencv_calib3d -lopencv_videoio -lopencv_rgbd -lopencv_video -lopencv_imgproc -lopencv_core -lopencv_plot -lopencv_highgui -lwpinet -lntcore -lapriltag -I/usr/include/opencv4 -I/usr/local/include/wpiutil/ -I/usr/local/include/ntcore/ -I/usr/local/include/wpinet/ -I/usr/include/eigen3 -o depth-calib

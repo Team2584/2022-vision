@@ -152,8 +152,8 @@ int main()
     ImageStatus framestatus;
     frame = pCam1->GetNextImage();
     ImagePtr cpframe(frame);
-    Mat matframe(540, 720, CV_8UC1);
-    Mat saveframe(540, 720, CV_8UC1);
+    Mat matframe(cv::Size(720, 540), CV_8UC1);
+    Mat saveframe(cv::Size(720, 540), CV_8UC1);
     vector<Mat> images;
 
     while (true)
@@ -190,8 +190,8 @@ int main()
 
     vector<Point2f> corner_pts;
     bool success;
-    Mat displayimg(540, 720, CV_8UC1);
-    Mat current(540, 720, CV_8UC1);
+    Mat displayimg(cv::Size(720, 540), CV_8UC1);
+    Mat current(cv::Size(720, 540), CV_8UC1);
     printf("\nBeginning processing\n");
 
     for (int i = 0; i < images.size(); i++)

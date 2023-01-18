@@ -8,7 +8,7 @@ depthCamera::depthCamera(string camSerial, int width, int height, int fps)
                                                                        cv::Size(width, height),
                                                                        CV_8UC1}
 {
-    setCamParams(323, 245, 608, 608);
+    setCamParams(608, 608, 323, 245);
     setDistCoeffs();
     this->width = width;
     this->height = height;

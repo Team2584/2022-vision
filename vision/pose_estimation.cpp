@@ -80,6 +80,11 @@ void getRelativeTranslationRotation(apriltag_detection_t *det, camInfo *cam, Eig
     // convention makes more sense here, because yaw,pitch,roll then
     // naturally agree with the orientation of the object
     rot = T.block(0, 0, 3, 3);
+    /*
+     * Positive X = Camera moving left
+     * Positive Z = Camera moving up
+     * Positive Y = Camera moving away from tag
+     */
 }
 
 // ------------------ NOT from AprilNav ---------------------------------
@@ -113,6 +118,22 @@ Eigen::Matrix3d rotation_from_euler(double roll, double pitch, double yaw)
     return Rot_matrix;
 }
 
+int sgn(double x)
+{
+    if (x > 0)
+    {
+        return 1;
+    }
+    else if (x < 0)
+    {
+        return -1;
+    }
+    else
+    {
+        return 0;
+    }
+}
+
 void getRobotPosition(apriltag_detection_t *det, robot_position *pos, camInfo *cam)
 {
     Eigen::Vector3d tag_trans;
@@ -123,7 +144,7 @@ void getRobotPosition(apriltag_detection_t *det, robot_position *pos, camInfo *c
 
     getRelativeTranslationRotation(det, cam, tag_trans, tag_rot);
     wRo_to_euler(tag_rot, rotY, rotZ, rotX);
-    rotX *= -1;
+    rotX = sgn(rotX) * (M_PI - fabs(rotX));
     rotY *= 1;
     rotZ *= -1;
     Eigen::Matrix3d rotationMatrix = rotation_from_euler(rotY, rotX, rotZ);
@@ -134,10 +155,37 @@ void getRobotPosition(apriltag_detection_t *det, robot_position *pos, camInfo *c
     // printf("Pre Rotated: \n x: %f\n h: %f\n z: %f\n", linX, linY, linZ);
 
     // Tags can only be read upside-down if rotZ isn't flipped
-    Eigen::Vector3d point = getRealTranslationRotation(tag_trans, rotationMatrix);
+    Eigen::Vector3d newTagTrans;
+    newTagTrans << tag_trans(1), tag_trans(0), tag_trans(2);
+    /*
+     * Camera moves right -> X grows
+     * Camera moves away from target -> Y grows
+     * Camera moves down -> Z grows
+     */
 
-    printf(" x: %f\n y: %f\n z: %f\n", point(1), point(0), point(2));
-    printf(" theta: %f\n", rotZ / M_PI * 180);
+    /*
+     * Camera Rotates clockwise (top view) -> rotZ decreases
+     * Camera Rotates clockwise (back view) -> rotY decreases (avrick thinks it should be opposite)
+     * Camera Rotates clockwise (look from camera's right [usb port side]) (i.e. tilts down) -> rotX
+     * decreases (avrick thinks should be opposite)
+     */
+
+    cout << "New Tag_Trans:" << endl << newTagTrans << endl;
+
+    Eigen::Matrix3d zRotMatx;
+    zRotMatx << 0, 0, 0, 0, 0, 0, 0, 0, 1;
+    zRotMatx(0, 0) = cos(rotZ);
+    zRotMatx(0, 1) = -sin(rotZ);
+    zRotMatx(1, 0) = sin(rotZ);
+    zRotMatx(1, 1) = cos(rotZ);
+    // cout << zRotMatx << endl;
+    Eigen::Vector3d point = zRotMatx * newTagTrans;
+
+    // Eigen::Vector3d point = getRealTranslationRotation(tag_trans, rotationMatrix);
+
+    printf(" x: %f\n y: %f\n z: %f\n", point(0), point(1), point(2));
+    printf(" rotX: %f\n rotY: %f\n rotZ: %f\n", rotX / M_PI * 180, rotY / M_PI * 180,
+           rotZ / M_PI * 180);
     pos->x = -point(0);
     pos->y = point(1);
     pos->theta = rotZ;

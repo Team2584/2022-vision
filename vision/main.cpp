@@ -13,7 +13,7 @@ int hamm_hist[HAMM_HIST_MAX];
 int main()
 {
     flirCamera flir(0);
-    depthCamera depth_blue(DEPTH_BLUE, 640, 480, 60);
+    // depthCamera depth_blue(DEPTH_BLUE, 640, 480, 60);
     depthCamera depth_red(DEPTH_RED, 640, 480, 60);
 
     /**********************************************************************************************
@@ -81,7 +81,7 @@ int main()
         counter++;
 
         flir.getFrame();
-        depth_blue.getFrame();
+        // depth_blue.getFrame();
         depth_red.getFrame();
 
         if (errno == EAGAIN)
@@ -94,8 +94,8 @@ int main()
 
         zarray_t *poses = zarray_create(sizeof(robot_position *));
 
-        getPoses(flir.grayFrame, flir.colorFrame, &flir.info, td, poses);
-        getPoses(depth_blue.grayFrame, depth_blue.colorFrame, &depth_blue.info, td, poses);
+        // getPoses(flir.grayFrame, flir.colorFrame, &flir.info, td, poses);
+        // getPoses(depth_blue.grayFrame, depth_blue.colorFrame, &depth_blue.info, td, poses);
         getPoses(depth_red.grayFrame, depth_red.colorFrame, &depth_red.info, td, poses);
 
         for (int i = 0; i < zarray_size(poses); i++)
@@ -104,12 +104,12 @@ int main()
             zarray_get(poses, i, &pos);
         }
 
-        drawMargins(flir.colorFrame);
-        drawMargins(depth_blue.colorFrame);
+        // drawMargins(flir.colorFrame);
+        // drawMargins(depth_blue.colorFrame);
         drawMargins(depth_red.colorFrame);
 
-        imshow("flir", flir.colorFrame);
-        imshow("depth_blue", depth_blue.colorFrame);
+        // imshow("flir", flir.colorFrame);
+        // imshow("depth_blue", depth_blue.colorFrame);
         imshow("depth_red", depth_red.colorFrame);
 
 

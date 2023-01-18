@@ -147,7 +147,7 @@ void getRobotPosition(apriltag_detection_t *det, robot_position *pos, camInfo *c
     rotX = sgn(rotX) * (M_PI - fabs(rotX));
     rotY *= 1;
     rotZ *= -1;
-    Eigen::Matrix3d rotationMatrix = rotation_from_euler(rotY, rotX, rotZ);
+    // Eigen::Matrix3d rotationMatrix = rotation_from_euler(rotY, rotX, rotZ);
     // cout << "Translation\n " << tag_trans * 39.37008 << endl;
     // cout << "Rotation\n " << tag_rot << endl;
     // printf("Better Rotation\n %f\n %f\n %f\n", rotX, rotY, rotZ);
@@ -156,7 +156,8 @@ void getRobotPosition(apriltag_detection_t *det, robot_position *pos, camInfo *c
 
     // Tags can only be read upside-down if rotZ isn't flipped
     Eigen::Vector3d newTagTrans;
-    newTagTrans << tag_trans(1), tag_trans(0), tag_trans(2);
+    newTagTrans << tag_trans(1) + cam->offset.x, tag_trans(0) + cam->offset.y,
+        tag_trans(2) + cam->offset.z;
     /*
      * Camera moves right -> X grows
      * Camera moves away from target -> Y grows
@@ -165,9 +166,9 @@ void getRobotPosition(apriltag_detection_t *det, robot_position *pos, camInfo *c
 
     /*
      * Camera Rotates clockwise (top view) -> rotZ decreases
-     * Camera Rotates clockwise (back view) -> rotY decreases (avrick thinks it should be opposite)
+     * Camera Rotates clockwise (back view) -> rotY decreases
      * Camera Rotates clockwise (look from camera's right [usb port side]) (i.e. tilts down) -> rotX
-     * decreases (avrick thinks should be opposite)
+     * decreases
      */
 
     cout << "New Tag_Trans:" << endl << newTagTrans << endl;
@@ -178,15 +179,32 @@ void getRobotPosition(apriltag_detection_t *det, robot_position *pos, camInfo *c
     zRotMatx(0, 1) = -sin(rotZ);
     zRotMatx(1, 0) = sin(rotZ);
     zRotMatx(1, 1) = cos(rotZ);
-    // cout << zRotMatx << endl;
-    Eigen::Vector3d point = zRotMatx * newTagTrans;
+
+    Eigen::Matrix3d xRotMatx;
+    xRotMatx << 1, 0, 0, 0, 0, 0, 0, 0, 0;
+    xRotMatx(1, 1) = cos(rotX);
+    xRotMatx(1, 2) = -sin(rotX);
+    xRotMatx(2, 1) = sin(rotX);
+    xRotMatx(2, 2) = cos(rotX);
+
+    Eigen::Matrix3d yRotMatx;
+    yRotMatx << 0, 0, 0, 0, 1, 0, 0, 0, 0;
+    yRotMatx(0, 0) = cos(rotY);
+    yRotMatx(0, 2) = sin(rotY);
+    yRotMatx(2, 0) = -sin(rotY);
+    yRotMatx(2, 2) = cos(rotY);
+
+    Eigen::Matrix3d fullRotMatx = zRotMatx * yRotMatx * xRotMatx;
+    Eigen::Vector3d point = fullRotMatx * newTagTrans;
 
     // Eigen::Vector3d point = getRealTranslationRotation(tag_trans, rotationMatrix);
 
     printf(" x: %f\n y: %f\n z: %f\n", point(0), point(1), point(2));
     printf(" rotX: %f\n rotY: %f\n rotZ: %f\n", rotX / M_PI * 180, rotY / M_PI * 180,
            rotZ / M_PI * 180);
-    pos->x = -point(0);
-    pos->y = point(1);
-    pos->theta = rotZ;
+
+    pos->x = 4.42 - point(0);
+    pos->y = point(1) + 1;
+    pos->z = 0.514 - point(3);
+    pos->theta = -1 * (rotZ + M_PI);
 }

@@ -36,6 +36,15 @@ typedef struct camInfo
     cv::Matx33d camMatx;
 } camInfo;
 
+typedef struct robot_position
+{
+    double x;
+    double y;
+    double z;
+    double theta;           // in radians
+    double processing_time; // in microseconds
+} robot_position;
+
 class abstractCamera
 {
   protected:

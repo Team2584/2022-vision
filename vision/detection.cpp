@@ -17,9 +17,10 @@ bool shouldIgnoreDetection(apriltag_detection_t *det, int frame_width, int frame
     return false;
 }
 
-int getPoses(cv::Mat grayFrame, cv::Mat colorFrame, camInfo *cam, apriltag_detector_t *td,
-             zarray_t *poses)
+std::vector<robot_position> getPoses(cv::Mat grayFrame, cv::Mat colorFrame, camInfo *cam,
+                                     apriltag_detector_t *td)
 {
+
     extern int total_hamm_hist[];
     extern int hamm_hist[];
 
@@ -33,6 +34,7 @@ int getPoses(cv::Mat grayFrame, cv::Mat colorFrame, camInfo *cam, apriltag_detec
 
     // Detect Tags
     zarray_t *detections = apriltag_detector_detect(td, &im);
+    std::vector<robot_position> poses;
 
     // Filter detections and add good ones to array
     int tags = 0;
@@ -47,11 +49,11 @@ int getPoses(cv::Mat grayFrame, cv::Mat colorFrame, camInfo *cam, apriltag_detec
 
             robot_position pos;
             getRobotPosition(det, &pos, cam);
-            zarray_add(poses, &pos);
+            poses.push_back(pos);
         }
         hamm_hist[det->hamming]++;
         total_hamm_hist[det->hamming]++;
     }
     apriltag_detections_destroy(detections);
-    return tags;
+    return poses;
 }

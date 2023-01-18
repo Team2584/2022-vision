@@ -12,9 +12,9 @@ int hamm_hist[HAMM_HIST_MAX];
 
 int main()
 {
-    flirCamera flir(0);
+    // flirCamera flir(0);
     depthCamera depth_blue(DEPTH_BLUE, 640, 480, 60);
-    depthCamera depth_red(DEPTH_RED, 640, 480, 60);
+    // depthCamera depth_red(DEPTH_RED, 640, 480, 60);
 
     /**********************************************************************************************
      * AprilTags Setup *
@@ -60,11 +60,9 @@ int main()
 
     // Other vision topics
     nt::BooleanTopic robot_pos_goodTopic = localTbl->GetBooleanTopic("robot_pos_good");
-    nt::RawTopic robot_pose_1Topic = localTbl->GetRawTopic("pose1");
-
+    nt::DoubleArrayTopic robot_pose_Topic = localTbl->GetDoubleArrayTopic("poseArray");
     nt::BooleanEntry robot_pos_goodEntry = robot_pos_goodTopic.GetEntry(false, {.periodic = 0.01});
-    nt::RawEntry robot_pose_1Entry =
-        robot_pose_1Topic.GetEntry("robot_position", {}, {.periodic = 0.01});
+    nt::DoubleArrayEntry robot_pose_Entry = robot_pose_Topic.GetEntry({}, {.periodic = 0.01});
 
     /**********************************************************************************************
      * THE LOOP *
@@ -80,9 +78,9 @@ int main()
         sanitycheckEntry.Set(counter);
         counter++;
 
-        flir.getFrame();
+        // flir.getFrame();
         depth_blue.getFrame();
-        depth_red.getFrame();
+        // depth_red.getFrame();
 
         if (errno == EAGAIN)
         {
@@ -92,26 +90,29 @@ int main()
 
         robot_pos_goodEntry.Set(false);
 
-        zarray_t *poses = zarray_create(sizeof(robot_position *));
+        std::vector<robot_position> poses =
+            getPoses(depth_blue.grayFrame, depth_blue.colorFrame, &depth_blue.info, td);
 
-        getPoses(flir.grayFrame, flir.colorFrame, &flir.info, td, poses);
-        getPoses(depth_blue.grayFrame, depth_blue.colorFrame, &depth_blue.info, td, poses);
-        getPoses(depth_red.grayFrame, depth_red.colorFrame, &depth_red.info, td, poses);
+        // getPoses(flir.grayFrame, flir.colorFrame, &flir.info, td, poses);
+        // getPoses(depth_red.grayFrame, depth_red.colorFrame, &depth_red.info, td, poses);
 
-        for (int i = 0; i < zarray_size(poses); i++)
+        for (int i = 0; i < poses.size(); i++)
         {
-            robot_position *pos;
-            zarray_get(poses, i, &pos);
+            robot_position pos = poses[i];
+            cout << pos.x << endl;
+            cout << pos.y << endl;
+            cout << pos.z << endl;
+            std::vector<double> entryVector = {pos.x, pos.y, pos.z, pos.theta, 2.0};
+            robot_pose_Entry.Set(entryVector);
         }
 
-        drawMargins(flir.colorFrame);
+        // drawMargins(flir.colorFrame);
         drawMargins(depth_blue.colorFrame);
-        drawMargins(depth_red.colorFrame);
+        // drawMargins(depth_red.colorFrame);
 
-        imshow("flir", flir.colorFrame);
+        // imshow("flir", flir.colorFrame);
         imshow("depth_blue", depth_blue.colorFrame);
-        imshow("depth_red", depth_red.colorFrame);
-
+        // imshow("depth_red", depth_red.colorFrame);
 
         if (waitKey(1) == 'q')
             break;

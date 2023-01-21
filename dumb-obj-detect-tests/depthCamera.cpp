@@ -56,11 +56,7 @@ void depthCamera::getFrame()
     cv::cvtColor(colorFrame, grayFrame, cv::COLOR_BGR2GRAY);
 }
 
-static void on_trackbar(int, void *)
-{
-}
-
-void depthCamera::findCones()
+double depthCamera::findCones()
 {
     GaussianBlur(colorFrame, colorFrame, Size(17, 17), 1.2, 1.2, BORDER_DEFAULT);
 
@@ -99,7 +95,7 @@ void depthCamera::findCones()
     findContours(mask, contours, hierarchy, RETR_EXTERNAL, CHAIN_APPROX_SIMPLE);
 
     vector<Rect> boundBoxes;
-    for (int i = 0; i < contours.size(); i++)
+    for (unsigned int i = 0; i < contours.size(); i++)
     {
         Rect boundBox = boundingRect(contours[i]);
         if (boundBox.width < 10 || boundBox.height < 10) // Discard small detections
@@ -110,8 +106,31 @@ void depthCamera::findCones()
         drawContours(colorFrame, contours, i, Scalar(0, 255, 0), 2, FILLED);
     }
 
+    if (boundBoxes.size() == 0)
+        return -1;
 
-    // Trackbars for range
+    // For now just select largest cone detection
+    int area = 0;
+    int largest = 0;
+
+    for (unsigned int i = 0; i < boundBoxes.size(); i++)
+    {
+        if (boundBoxes[i].width * boundBoxes[i].height > area)
+        {
+            area = boundBoxes[i].width * boundBoxes[i].height;
+            largest = i;
+        }
+    }
+
+    Rect cone = boundBoxes[largest];
+
+    int coneCenter = cone.x + (cone.width / 2);
+    double dist = (coneCenter - (width / 2));
+    cout << "Distance from center in px: " << dist << endl;
+    dist /= width / 2;
+    cout << "Distance from center (scaled): " << dist << endl;
+
+    // Example trackbars
     /*
     char tbname_min[50];
     snprintf(tbname_min, sizeof(tbname_min), "Min Hue Value %d", 179);
@@ -129,10 +148,9 @@ void depthCamera::findCones()
     Mat box = Mat(hsvFrame, Rect(width / 2 - 10, height / 2 - 10, box_size, box_size));
 
     Scalar hue = mean(box);
-    cout << "Saturation in box: " << hue[1] << endl << "Value in box: " << hue[2] << endl;
-    // 7-25
+    cout << "Hue in box: " << hue[0] << endl << "Saturation in box: " << hue[1] << endl << "Value in
+    box: " << hue[2] << endl;
 
-    // Display stuff
     line(colorFrame, Point(width / 2 - box_size, height / 2 - box_size),
          Point(width / 2 + box_size, height / 2 - box_size), Scalar(255, 255, 255), 2);
 
@@ -144,7 +162,7 @@ void depthCamera::findCones()
 
     line(colorFrame, Point(width / 2 + box_size, height / 2 - box_size),
          Point(width / 2 + box_size, height / 2 + box_size), Scalar(255, 255, 255), 2);
-         */
+     */
 
     imshow("rgb", colorFrame);
     // imshow("hsv", hsvFrame);
@@ -155,4 +173,5 @@ void depthCamera::findCones()
     // imshow("cone", justCone);
     // imshow("saturation", channels[1]);
     // imshow("value", channels[2]);
+    return dist;
 }

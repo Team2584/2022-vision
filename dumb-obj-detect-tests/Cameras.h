@@ -112,7 +112,7 @@ class depthCamera : public abstractCamera
     void setManualExposure(int exposuretime);
     void setAutoExposure();
     void getFrame();
-    void findCones();
+    double findCones();
 };
 
 class usbCamera : public abstractCamera

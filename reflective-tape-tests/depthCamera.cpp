@@ -4,9 +4,8 @@ using namespace std;
 using namespace cv;
 
 depthCamera::depthCamera(string camSerial, int width, int height, int fps)
-    : pipe{}, cfg{}, colorFrame{cv::Size(width, height), CV_8UC3}, grayFrame{
-                                                                       cv::Size(width, height),
-                                                                       CV_8UC1}
+    : pipe{}, cfg{}, colorFrame{cv::Size(width, height), CV_8UC3},
+      grayFrame{cv::Size(width, height), CV_8UC1}, depthFrame{cv::Size(width, height), CV_8UC3}
 {
     // Blue camera
     // setCamParams(608, 608, 323, 245);
@@ -51,8 +50,11 @@ void depthCamera::getFrame()
     rs2::frameset frames;
     frames = pipe.wait_for_frames();
     rs2::video_frame frame = frames.get_color_frame();
-    rs2::depth_frame dpframe = frames.get_depth_frame();
 
     colorFrame.data = (uint8_t *)frame.get_data();
     cv::cvtColor(colorFrame, grayFrame, cv::COLOR_BGR2GRAY);
+
+    rs2::colorizer color_map;
+    rs2::frame dpframe = frames.get_depth_frame().apply_filter(color_map);
+    depthFrame.data = (uint8_t *)(dpframe.get_data());
 }

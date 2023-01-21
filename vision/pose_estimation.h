@@ -2,6 +2,7 @@
 #define pose_estimation_h
 
 #include <Eigen/Eigen>
+#include <chrono>
 #include <cmath>
 
 extern "C"

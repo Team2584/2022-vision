@@ -13,7 +13,7 @@ int hamm_hist[HAMM_HIST_MAX];
 int main()
 {
     // flirCamera flir(0);
-    depthCamera depth_blue(DEPTH_BLUE, 640, 480, 60);
+    depthCamera depth_blue(DEPTH_RED, 640, 480, 60);
     // depthCamera depth_red(DEPTH_RED, 640, 480, 60);
 
     /**********************************************************************************************
@@ -54,7 +54,7 @@ int main()
 
     // Make a sanity check topic and an entry to publish/read from it; set initial
     // value
-    nt::IntegerTopic sanitycheck = visionTbl->GetIntegerTopic("sanitycheck");
+    nt::IntegerTopic sanitycheck = localTbl->GetIntegerTopic("sanitycheck");
     nt::IntegerEntry sanitycheckEntry = sanitycheck.GetEntry(0, {.periodic = 0.01});
     sanitycheckEntry.Set(1);
 
@@ -80,6 +80,7 @@ int main()
 
         // flir.getFrame();
         depth_blue.getFrame();
+        chrono::time_point start = chrono::steady_clock::now();
         // depth_red.getFrame();
 
         if (errno == EAGAIN)
@@ -99,8 +100,12 @@ int main()
             cout << pos.x << endl;
             cout << pos.y << endl;
             cout << pos.z << endl;
-            std::vector<double> entryVector = {pos.x, pos.y, pos.z, pos.theta, 2.0};
+            chrono::time_point end = chrono::steady_clock::now();
+            auto duration = chrono::duration_cast<chrono::microseconds>(end - start);
+            int ms = duration.count();
+            std::vector<double> entryVector = {pos.x, pos.y, pos.z, pos.theta, ms};
             robot_pose_Entry.Set(entryVector);
+            nt_inst.Flush();
         }
 
         // drawMargins(flir.colorFrame);
@@ -108,7 +113,7 @@ int main()
         // drawMargins(depth_red.colorFrame);
 
         // imshow("flir", flir.colorFrame);
-        imshow("depth_blue", depth_blue.colorFrame);
+        // imshow("depth_blue", depth_blue.colorFrame);
         // imshow("depth_red", depth_red.colorFrame);
 
         if (waitKey(1) == 'q')

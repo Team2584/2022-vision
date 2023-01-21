@@ -4,6 +4,7 @@
 #include <SpinGenApi/SpinnakerGenApi.h>
 #include <Spinnaker.h>
 #include <apriltag/apriltag.h>
+#include <chrono>
 #include <librealsense2/h/rs_sensor.h>
 #include <librealsense2/rs.hpp>
 #include <opencv2/opencv.hpp>
@@ -56,6 +57,7 @@ class abstractCamera
     camInfo info;
     cv::Mat colorFrame;
     cv::Mat grayFrame;
+    std::chrono::time_point<std::chrono::steady_clock> frameTime;
 
     virtual void getFrame() = 0;
     virtual void setManualExposure(int exposuretime) = 0;

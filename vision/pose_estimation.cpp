@@ -195,6 +195,7 @@ void getRobotPosition(apriltag_detection_t *det, robot_position *pos, camInfo *c
     yRotMatx(2, 2) = cos(rotY);
 
     Eigen::Matrix3d fullRotMatx = zRotMatx * yRotMatx * xRotMatx;
+
     Eigen::Vector3d point = fullRotMatx * newTagTrans;
 
     // Eigen::Vector3d point = getRealTranslationRotation(tag_trans, rotationMatrix);
@@ -203,8 +204,13 @@ void getRobotPosition(apriltag_detection_t *det, robot_position *pos, camInfo *c
     printf(" rotX: %f\n rotY: %f\n rotZ: %f\n", rotX / M_PI * 180, rotY / M_PI * 180,
            rotZ / M_PI * 180);
 
+    /*
     pos->x = 4.42 - point(0);
     pos->y = point(1) + 1;
-    pos->z = 0.514 - point(3);
+    pos->z = 0.514 - point(2);
+    */
+    pos->x = -point(0);
+    pos->y = point(1);
+    pos->z = -point(2);
     pos->theta = -1 * (rotZ + M_PI);
 }

@@ -4,9 +4,10 @@ using namespace std;
 using namespace cv;
 
 depthCamera::depthCamera(string camSerial, int width, int height, int fps)
-    : pipe{}, cfg{}, colorFrame{cv::Size(width, height), CV_8UC3}, grayFrame{
-                                                                       cv::Size(width, height),
-                                                                       CV_8UC1}
+    : pipe{}, cfg{}, colorFrame{cv::Size(width, height), CV_8UC3}, grayFrame{cv::Size(width,
+                                                                                      height),
+                                                                             CV_8UC1},
+      depthFrame{nullptr}, depthData{Size(width, height), CV_16UC1}
 {
     // Blue camera
     // setCamParams(608, 608, 323, 245);
@@ -51,12 +52,19 @@ void depthCamera::getFrame()
     rs2::frameset frames;
     frames = pipe.wait_for_frames();
     rs2::video_frame frame = frames.get_color_frame();
+    depthFrame = frames.get_depth_frame();
 
     colorFrame.data = (uint8_t *)frame.get_data();
     cv::cvtColor(colorFrame, grayFrame, cv::COLOR_BGR2GRAY);
 }
 
-double depthCamera::findCones()
+double depthCamera::get_distance(int x, int y)
+{
+    return depthFrame.get_units() * reinterpret_cast<const uint16_t *>(
+                                        depthFrame.get_data())[y * depthFrame.get_width() + x];
+}
+
+std::pair<double, double> depthCamera::findCones()
 {
     GaussianBlur(colorFrame, colorFrame, Size(17, 17), 1.2, 1.2, BORDER_DEFAULT);
 
@@ -78,41 +86,43 @@ double depthCamera::findCones()
     inRange(hsvFrame, Scalar(min_hue, min_sat, min_val), Scalar(max_hue, max_sat, max_val), mask);
     cvtColor(mask, colorMask, COLOR_GRAY2BGR);
 
-    /* Filter tuning masks
+    /* Filter tuning masks */
     Mat hueMask;
     inRange(channels[0], min_hue, max_hue, hueMask);
     Mat satMask;
     inRange(channels[1], min_sat, max_sat, satMask);
     Mat valMask;
     inRange(channels[2], min_val, max_val, valMask);
-    */
 
     Mat justCone(Size(width, height), CV_8UC1);
     bitwise_and(colorFrame, colorMask, justCone);
 
+    // Get contours of cones
     vector<vector<Point>> contours;
     vector<Vec4i> hierarchy;
     findContours(mask, contours, hierarchy, RETR_EXTERNAL, CHAIN_APPROX_SIMPLE);
 
+    // Show contours & bounding boxes
     vector<Rect> boundBoxes;
+    vector<vector<Point>> goodContours;
     for (unsigned int i = 0; i < contours.size(); i++)
     {
         Rect boundBox = boundingRect(contours[i]);
         if (boundBox.width < 10 || boundBox.height < 10) // Discard small detections
             continue;
 
+        goodContours.push_back(contours[i]);
         boundBoxes.push_back(boundBox);
-        rectangle(colorFrame, boundBox, Scalar(255, 0, 0));
         drawContours(colorFrame, contours, i, Scalar(0, 255, 0), 2, FILLED);
+        rectangle(colorFrame, boundBox, Scalar(255, 0, 0));
     }
 
     if (boundBoxes.size() == 0)
-        return -1;
+        return pair(0, 0);
 
     // For now just select largest cone detection
     int area = 0;
     int largest = 0;
-
     for (unsigned int i = 0; i < boundBoxes.size(); i++)
     {
         if (boundBoxes[i].width * boundBoxes[i].height > area)
@@ -122,13 +132,57 @@ double depthCamera::findCones()
         }
     }
 
+    vector<Point> coneContour = goodContours[largest];
+    // Scale the cone contour down
+    Moments mnts = moments(coneContour);
+    int cx = (int)(mnts.m10 / mnts.m00);
+    int cy = (int)(mnts.m01 / mnts.m00);
+    for (size_t i = 0; i < coneContour.size(); i++)
+    {
+        // Center it
+        coneContour[i].x -= cx;
+        coneContour[i].y -= cy;
+        // Scale it
+        coneContour[i].x *= 0.8;
+        coneContour[i].y *= 0.8;
+        // Move it back to original position
+        coneContour[i].x += cx;
+        coneContour[i].y += cy;
+    }
+
     Rect cone = boundBoxes[largest];
 
-    int coneCenter = cone.x + (cone.width / 2);
-    double dist = (coneCenter - (width / 2));
-    cout << "Distance from center in px: " << dist << endl;
-    dist /= width / 2;
-    cout << "Distance from center (scaled): " << dist << endl;
+    int coneCenterX = cone.x + (cone.width / 2);
+    int coneCenterY = cone.y + (cone.height / 2);
+
+    line(colorFrame, Point(coneCenterX - 5, coneCenterY), Point(coneCenterX + 5, coneCenterY),
+         Scalar(255, 255, 255), 1);
+    line(colorFrame, Point(coneCenterX, coneCenterY + 5), Point(coneCenterX, coneCenterY - 5),
+         Scalar(255, 255, 255), 1);
+
+    Rect box(coneCenterX - 10, coneCenterY - 10, 20, 20);
+    rectangle(colorFrame, box, Scalar(50, 50, 50), 1);
+    double distAvg = 0;
+    double distNum = 0;
+    for (int y = box.y; y < box.y + box.height; y++)
+    {
+        for (int x = box.x; x < box.x + box.width; x++)
+        {
+            distNum++;
+            distAvg += get_distance(x, y);
+        }
+    }
+
+    distAvg /= distNum;
+    cout << "Distance: " << distAvg << endl;
+
+    double pxFromCenter = (coneCenterX - (width / 2));
+    double angle = pxFromCenter * 0.108;
+    angle *= M_PI / 180;
+    double x = distAvg * sin(angle);
+    double y = distAvg * cos(angle);
+    cout << "X offset: " << x << endl;
+    cout << "Y offset: " << y << endl;
 
     // Example trackbars
     /*
@@ -164,7 +218,8 @@ double depthCamera::findCones()
          Point(width / 2 + box_size, height / 2 + box_size), Scalar(255, 255, 255), 2);
      */
 
-    imshow("rgb", colorFrame);
+    // imshow("rgb", colorFrame);
+    // imshow("depth", depthData);
     // imshow("hsv", hsvFrame);
     // imshow("hue mask", hueMask);
     // imshow("saturation mask", satMask);
@@ -173,5 +228,5 @@ double depthCamera::findCones()
     // imshow("cone", justCone);
     // imshow("saturation", channels[1]);
     // imshow("value", channels[2]);
-    return dist;
+    return pair(x, y);
 }

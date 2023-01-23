@@ -106,7 +106,6 @@ class depthCamera : public abstractCamera
     cv::Mat colorFrame;
     cv::Mat grayFrame;
     rs2::depth_frame depthFrame;
-    cv::Mat depthData;
 
     depthCamera(std::string camSerial, int width, int height, int fps);
     ~depthCamera();

@@ -4,10 +4,8 @@ using namespace std;
 using namespace cv;
 
 depthCamera::depthCamera(string camSerial, int width, int height, int fps)
-    : pipe{}, cfg{}, colorFrame{cv::Size(width, height), CV_8UC3}, grayFrame{cv::Size(width,
-                                                                                      height),
-                                                                             CV_8UC1},
-      depthFrame{nullptr}, depthData{Size(width, height), CV_16UC1}
+    : pipe{}, cfg{}, colorFrame{cv::Size(width, height), CV_8UC3},
+      grayFrame{cv::Size(width, height), CV_8UC1}, depthFrame{nullptr}
 {
     // Blue camera
     // setCamParams(608, 608, 323, 245);
@@ -160,23 +158,35 @@ std::pair<double, double> depthCamera::findCones()
     line(colorFrame, Point(coneCenterX, coneCenterY + 5), Point(coneCenterX, coneCenterY - 5),
          Scalar(255, 255, 255), 1);
 
-    Rect box(coneCenterX - 10, coneCenterY - 10, 20, 20);
-    rectangle(colorFrame, box, Scalar(50, 50, 50), 1);
-    double distAvg = 0;
-    double distNum = 0;
-    for (int y = box.y; y < box.y + box.height; y++)
-    {
-        for (int x = box.x; x < box.x + box.width; x++)
-        {
-            distNum++;
-            distAvg += get_distance(x, y);
-        }
-    }
+    Mat depthData(Size(width, height), CV_16UC1, (uint16_t *)depthFrame.get_data());
+    double depthUnit = depthFrame.get_units();
 
-    distAvg /= distNum;
+    /*
+     * Getting depth from correct region:
+     * Create a mask from the scaled-down cone contour and a mask from
+     * the box at the center of the cone. bitwise_and them together, and
+     * use the result as the filter in the mean(), so we only consider
+     * depth from pixels that are in the square and within that scaled-down
+     * cone
+     */
+    Mat scaledConeMask = Mat::zeros(Size(width, height), CV_8UC1);
+    drawContours(scaledConeMask, vector<vector<Point>>(1, coneContour), -1, 255, -1);
+
+    drawContours(colorFrame, vector<vector<Point>>(1, coneContour), -1, Scalar(0, 0, 255), 1);
+
+    Mat depthRoiMask = Mat::zeros(Size(width, height), CV_8UC1);
+    Rect depthRoi(coneCenterX - 10, coneCenterY - 10, 20, 20);
+    rectangle(colorFrame, depthRoi, Scalar(100, 100, 100), 1);
+    rectangle(depthRoiMask, depthRoi, 255, -1);
+
+    bitwise_and(depthRoiMask, scaledConeMask, depthRoiMask);
+
+    double distAvg = mean(depthData, depthRoiMask)[0] * depthUnit;
+
     cout << "Distance: " << distAvg << endl;
 
     double pxFromCenter = (coneCenterX - (width / 2));
+    // The 0.108 is a camera property: FOV_in_degrees / frame_width
     double angle = pxFromCenter * 0.108;
     angle *= M_PI / 180;
     double x = distAvg * sin(angle);

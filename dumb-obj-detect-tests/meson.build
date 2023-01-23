@@ -64,7 +64,7 @@ executable('objects',
            sources : src,
            dependencies : deps,
            include_directories : inc,
-           cpp_args : ['-Wno-deprecated', '-Wno-non-virtual-dtor'])
+           cpp_args : ['-Wno-deprecated', '-Wno-non-virtual-dtor', '-Wno-psabi'])
 
 executable('tune',
            sources : ['tune.cpp'],

@@ -18,6 +18,8 @@ depthCamera::depthCamera(string camSerial, int width, int height, int fps)
     this->width = width;
     this->height = height;
 
+    setPosOffset(-0.3048, 0.2, 0, 0, 0);
+
     // Select camera by serial number
     cfg.enable_device(camSerial);
 

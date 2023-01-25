@@ -240,3 +240,22 @@ std::pair<double, double> depthCamera::findCones()
     // imshow("value", channels[2]);
     return pair(x, y);
 }
+
+double depthCamera::findPoles()
+{
+    Mat depthData(Size(width, height), CV_16UC1, (uint16_t *)depthFrame.get_data());
+    double depthUnit = depthFrame.get_units();
+
+    double min_dist_m = 1.9;
+    double max_dist_m = 2;
+
+    int min_dist = min_dist_m / depthUnit;
+    int max_dist = max_dist_m / depthUnit;
+
+    Mat mask;
+    inRange(depthData, min_dist, max_dist, mask);
+    Mat edges;
+    // bitwise_and(mask, colorFrame, justPole);
+
+    imshow("pole", mask);
+}

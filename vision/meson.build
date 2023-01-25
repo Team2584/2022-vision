@@ -68,4 +68,4 @@ executable('runvision',
            sources : src,
            dependencies : deps,
            include_directories : inc,
-           cpp_args : ['-Wno-deprecated', '-Wno-non-virtual-dtor', '-ggdb'])
+           cpp_args : ['-Wno-deprecated', '-Wno-non-virtual-dtor', '-Wno-psabi'])

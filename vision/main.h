@@ -43,4 +43,7 @@ extern "C"
 
 #define IMG_MARGIN 20
 
+// Helper functions in main
+double time_since(std::chrono::time_point<std::chrono::steady_clock> start);
+
 #endif

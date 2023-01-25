@@ -105,6 +105,7 @@ class depthCamera : public abstractCamera
   public:
     cv::Mat colorFrame;
     cv::Mat grayFrame;
+    rs2::depth_frame depthFrame;
 
     depthCamera(std::string camSerial, int width, int height, int fps);
     ~depthCamera();
@@ -112,6 +113,7 @@ class depthCamera : public abstractCamera
     void setManualExposure(int exposuretime);
     void setAutoExposure();
     void getFrame();
+    std::pair<double, double> findCones();
 };
 
 class usbCamera : public abstractCamera

@@ -1,6 +1,7 @@
 #ifndef Camera_h
 #define Camera_h
 
+#include <Eigen/Eigen>
 #include <SpinGenApi/SpinnakerGenApi.h>
 #include <Spinnaker.h>
 #include <apriltag/apriltag.h>
@@ -12,6 +13,8 @@
 // Aliases for depth camera serial numbers; color-coded with tape on each physical camera
 #define DEPTH_BLUE "017322071728"
 #define DEPTH_RED "939622072805"
+
+#define INCH 39.37
 
 typedef struct camPosOffset
 {

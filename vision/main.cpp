@@ -14,7 +14,7 @@ int main()
 {
     // flirCamera flir(0);
     // depthCamera depth_blue(DEPTH_BLUE, 640, 480, 60);
-    depthCamera depth_red(DEPTH_RED, 640, 480, 60);
+    depthCamera depth_red(DEPTH_BLUE, 640, 480, 60);
 
     /**********************************************************************************************
      * AprilTags Setup *
@@ -116,11 +116,13 @@ int main()
 
         // Print & send cone info
         pair<double, double> conePos = depth_red.findCones();
-        cout << "Cone X: " << conePos.first << endl;
-        cout << "Cone Y: " << conePos.second << endl << endl;
+        // cout << "Cone X: " << conePos.first << endl;
+        // cout << "Cone Y: " << conePos.second << endl << endl;
         double ms = time_since(frameTime);
         vector<double> coneVector = {conePos.first, conePos.second, ms, coneNum};
         cone_pos_Entry.Set(coneVector);
+
+        imshow("depth_red", depth_red.colorFrame);
 
         // Print & send pole info
         /*
@@ -138,9 +140,8 @@ int main()
         // drawMargins(depth_red.colorFrame);
         // imshow("flir", flir.colorFrame);
         // imshow("depth_blue", depth_blue.colorFrame);
-        // imshow("depth_red", depth_red.colorFrame);
-        // if (waitKey(1) == 'q')
-        // break;
+        if (waitKey(1) == 'q')
+            break;
     }
 
     apriltag_detector_destroy(td);

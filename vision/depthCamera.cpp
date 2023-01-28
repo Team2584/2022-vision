@@ -1,4 +1,5 @@
 #include "Cameras.h"
+#include <chrono>
 
 using namespace std;
 using namespace cv;
@@ -17,7 +18,7 @@ depthCamera::depthCamera(string camSerial, int width, int height, int fps)
     this->width = width;
     this->height = height;
 
-    setPosOffset(-0.3048, 0.2, 0, 0, 0);
+    setPosOffset(-0.3048, 0.2, 0, 0, -0.2618);
 
     // Select camera by serial number
     cfg.enable_device(camSerial);
@@ -30,7 +31,7 @@ depthCamera::depthCamera(string camSerial, int width, int height, int fps)
     rs2::pipeline_profile prof = pipe.start(cfg);
 
     // Disgusting one-liner to disable laser
-    prof.get_device().first<rs2::depth_sensor>().set_option(RS2_OPTION_EMITTER_ENABLED, 0.f);
+    prof.get_device().first<rs2::depth_sensor>().set_option(RS2_OPTION_EMITTER_ENABLED, 1.f);
 }
 
 depthCamera::~depthCamera()
@@ -178,17 +179,55 @@ std::pair<double, double> depthCamera::findCones()
     bitwise_and(depthRoiMask, scaledConeMask, depthRoiMask);
 
     double distAvg = mean(depthData, depthRoiMask)[0] * depthUnit;
+    double centerDist = depthFrame.get_distance(coneCenterX, coneCenterY);
 
-    cout << "Distance: " << distAvg << endl;
+    cout << "Distance: " << distAvg * INCH << endl;
+    cout << "Other Distance: " << centerDist * INCH << endl;
 
-    double pxFromCenter = (coneCenterX - (width / 2));
+    Mat depthView;
+    depthData.convertTo(depthView, CV_8UC1);
+    line(colorFrame, Point((width / 2) - 5, (height / 2)), Point((width / 2) + 5, (height / 2)),
+         Scalar(255, 255, 255), 1);
+    line(colorFrame, Point((width / 2), (height / 2) + 5), Point((width / 2), (height / 2) - 5),
+         Scalar(255, 255, 255), 1);
+
+    line(depthView, Point((width / 2) - 5, (height / 2)), Point((width / 2) + 5, (height / 2)),
+         Scalar(255, 255, 255), 1);
+    line(depthView, Point((width / 2), (height / 2) + 5), Point((width / 2), (height / 2) - 5),
+         Scalar(255, 255, 255), 1);
+
+    imshow("depth", depthView / 2);
+    double XpxFromCenter = (coneCenterX - (width / 2));
+    double YpxFromCenter = ((height / 2) - coneCenterY);
     // The 0.108 is a camera property: FOV_in_degrees / frame_width
-    double angle = pxFromCenter * 0.108;
-    angle *= M_PI / 180;
-    double x = distAvg * sin(angle);
-    double y = distAvg * cos(angle);
-    cout << "X offset: " << x << endl;
-    cout << "Y offset: " << y << endl;
+    // Same goes for the vertical one
+    double xAngle = XpxFromCenter * 0.108;
+    double yAngle = YpxFromCenter * 0.089;
+    cout << "angle: " << yAngle << endl;
+    xAngle *= M_PI / 180;
+    yAngle *= M_PI / 180;
+    // Convert from spherical coordinates to x, y, z
+    double x = distAvg * cos(yAngle) * sin(xAngle);
+    double y = distAvg * cos(yAngle) * cos(xAngle);
+    double z = distAvg * sin(yAngle);
+
+    // Compensate for the camera being tilted down by rotating the vector
+    Eigen::Vector3d pos;
+    pos << x, y, z;
+
+    Eigen::Matrix3d rotationMatrix;
+    rotationMatrix << 1, 0, 0, 0, cos(info.offset.elevAngle), -sin(info.offset.elevAngle), 0,
+        sin(info.offset.elevAngle), cos(info.offset.elevAngle);
+
+    pos = rotationMatrix * pos;
+
+    x = pos(0) + info.offset.x;
+    y = pos(1) + info.offset.y;
+    z = pos(2) + info.offset.z;
+
+    cout << "Cone X: " << x << endl;
+    cout << "Cone Y: " << y << endl;
+    cout << "Cone Z: " << z << endl;
 
     return pair(x, y);
 }

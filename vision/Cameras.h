@@ -104,6 +104,9 @@ class depthCamera : public abstractCamera
     // Create a configuration for configuring the pipeline with a non default
     // profile
     rs2::config cfg;
+    rs2::pipeline_profile prof;
+
+    rs2::align align;
 
   public:
     cv::Mat colorFrame;
@@ -117,6 +120,8 @@ class depthCamera : public abstractCamera
     void setAutoExposure();
     void getFrame();
     std::pair<double, double> findCones();
+    std::pair<double, double> findCubes();
+    std::pair<double, double> findPoles();
 };
 
 class usbCamera : public abstractCamera

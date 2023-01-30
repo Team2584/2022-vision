@@ -114,6 +114,9 @@ int main()
             poseNum++;
         }
 
+        pair<double, double> polePos = depth_red.findPoles();
+
+        /*
         // Print & send cone info
         pair<double, double> conePos = depth_red.findCones();
         // cout << "Cone X: " << conePos.first << endl;
@@ -121,6 +124,17 @@ int main()
         double ms = time_since(frameTime);
         vector<double> coneVector = {conePos.first, conePos.second, ms, coneNum};
         cone_pos_Entry.Set(coneVector);
+        */
+
+        /*
+        // Print & send cube info
+        pair<double, double> cubePos = depth_red.findCubes();
+        cout << "Cube X: " << cubePos.first << endl;
+        cout << "Cube Y: " << cubePos.second << endl << endl;
+        ms = time_since(frameTime);
+        // vector<double> cubeVector = {conePos.first, conePos.second, ms, coneNum};
+        // cube_pos_Entry.Set(coneVector);
+        */
 
         imshow("depth_red", depth_red.colorFrame);
 
@@ -140,7 +154,7 @@ int main()
         // drawMargins(depth_red.colorFrame);
         // imshow("flir", flir.colorFrame);
         // imshow("depth_blue", depth_blue.colorFrame);
-        if (waitKey(1) == 'q')
+        if (waitKey(25) == 'q')
             break;
     }
 

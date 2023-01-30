@@ -22,7 +22,7 @@ int main(void)
     rs2::config cfg;
 
     // Select camera by serial number
-    cfg.enable_device(DEPTH_RED);
+    cfg.enable_device(DEPTH_BLUE);
 
     // Add desired streams to configuration
     cfg.enable_stream(RS2_STREAM_COLOR, WIDTH, HEIGHT, RS2_FORMAT_BGR8, FPS);
@@ -40,8 +40,25 @@ int main(void)
     int min_val = 120;
     int max_val = 255;
 
+    namedWindow("Color Image");
+    namedWindow("Detection");
+    namedWindow("Hue Mask");
+    namedWindow("Saturation Mask");
+    namedWindow("Value Mask");
+
+    // GUI STUFF
+    createTrackbar("Min Hue", "Hue Mask", &min_hue, 179);
+    createTrackbar("Max Hue", "Hue Mask", &max_hue, 179);
+
+    createTrackbar("Min Saturation", "Saturation Mask", &min_sat, 255);
+    createTrackbar("Max Saturation", "Saturation Mask", &max_sat, 255);
+
+    createTrackbar("Min Value", "Value Mask", &min_val, 255);
+    createTrackbar("Max Value", "Value Mask", &max_val, 255);
+
     while (true)
     {
+
         rs2::frameset frames;
         frames = pipe.wait_for_frames();
         rs2::video_frame frame = frames.get_color_frame();
@@ -83,16 +100,6 @@ int main(void)
              << "Value in box : " << hue[2] << endl
              << endl;
 
-        // GUI STUFF
-        createTrackbar("Min Hue", "Hue Mask", &min_hue, 179);
-        createTrackbar("Max Hue", "Hue Mask", &max_hue, 179);
-
-        createTrackbar("Min Saturation", "Saturation Mask", &min_sat, 255);
-        createTrackbar("Max Saturation", "Saturation Mask", &max_sat, 255);
-
-        createTrackbar("Min Value", "Value Mask", &min_val, 255);
-        createTrackbar("Max Value", "Value Mask", &max_val, 255);
-
         rectangle(colorFrame, rbox, Scalar(255, 255, 255), 2);
 
         imshow("Color Image", colorFrame);
@@ -121,6 +128,15 @@ int main(void)
 
         if (waitKey(1) == 'q')
             break;
+
+        colorFrame.release();
+        hsvFrame.release();
+        colorMask.release();
+        hueMask.release();
+        valMask.release();
+        satMask.release();
+        justCone.release();
+        box.release();
     }
     destroyAllWindows();
 

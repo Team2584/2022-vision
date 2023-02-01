@@ -12,16 +12,8 @@ depthCamera::depthCamera(string camSerial, int width, int height, int fps)
     : pipe{}, cfg{}, prof{}, align{RS2_STREAM_COLOR}, colorFrame{cv::Size(width, height), CV_8UC3},
       grayFrame{cv::Size(width, height), CV_8UC1}, depthFrame{nullptr}
 {
-    // Blue camera
-    setCamParams(608, 608, 323, 245);
-    setDistCoeffs(0.09116903370720442, 0.2567349843314421, -0.003936586357063021,
-                  0.001658039412119442, -1.633408316803933);
-    // Red camera
-    // setCamParams(599, 600, 334, 236);
     this->width = width;
     this->height = height;
-
-    setPosOffset(-0.3048, 0.2, 0, 0, -0.2618);
 
     // Select camera by serial number
     cfg.enable_device(camSerial);
@@ -33,7 +25,7 @@ depthCamera::depthCamera(string camSerial, int width, int height, int fps)
     // Instruct pipeline to start streaming with the requested configuration
     prof = pipe.start(cfg);
 
-    // Disgusting one-liner to disable laser
+    // Disgusting one-liner to turn on/off laser
     prof.get_device().first<rs2::depth_sensor>().set_option(RS2_OPTION_EMITTER_ENABLED, 1.f);
 }
 
@@ -56,13 +48,11 @@ void depthCamera::getFrame()
     rs2::frameset frames;
     frames = pipe.wait_for_frames();
 
-    /*
     auto start = chrono::steady_clock::now();
     frames = align.process(frames);
     auto end = chrono::steady_clock::now();
     auto dur = chrono::duration_cast<chrono::milliseconds>(end - start);
-    cout << "Time for aligning: " << dur.count() << endl;
-    */
+    cout << "Time for aligning: " << dur.count() << "ms" << endl;
 
     rs2::video_frame frame = frames.get_color_frame();
     depthFrame = frames.get_depth_frame();
@@ -170,7 +160,7 @@ std::pair<double, double> depthCamera::findCones()
     Mat depthRoi(depthData, cone);
     Mat depthRoiView;
     depthRoi.convertTo(depthRoiView, CV_8UC1);
-    imshow("things", depthRoiView);
+    // imshow("things", depthRoiView);
     drawContours(coneMask, vector<vector<Point>>(1, coneContour), -1, 255, -1);
 
     double distAvg = mean(depthData, coneMask)[0] * depthUnit;
@@ -191,7 +181,7 @@ std::pair<double, double> depthCamera::findCones()
     line(depthView, Point((width / 2), (height / 2) + 5), Point((width / 2), (height / 2) - 5),
          Scalar(255, 255, 255), 1);
 
-    imshow("depth", depthView / 2);
+    // imshow("depth", depthView / 2);
     double XpxFromCenter = (coneCenterX - (width / 2));
     double YpxFromCenter = ((height / 2) - coneCenterY);
     // The 0.108 is a camera property: FOV_in_degrees / frame_width
@@ -254,7 +244,7 @@ std::pair<double, double> depthCamera::findCubes()
     Mat closeKernel = getStructuringElement(MORPH_RECT, Size(cksize, cksize));
     morphologyEx(morphedMask, morphedMask, MORPH_CLOSE, closeKernel);
 
-    imshow("mask", morphedMask);
+    // imshow("mask", morphedMask);
 
     // Get contours of cones
     vector<vector<Point>> contours;
@@ -373,6 +363,7 @@ std::pair<double, double> depthCamera::findCubes()
 
 std::pair<double, double> depthCamera::findPoles()
 {
+    /*
     Mat depthData(Size(width, height), CV_16UC1, (uint16_t *)depthFrame.get_data());
     double depthUnit = depthFrame.get_units();
 
@@ -383,4 +374,5 @@ std::pair<double, double> depthCamera::findPoles()
     edges.convertTo(edgesView, CV_8UC1);
 
     imshow("depth edges", edges);
+    */
 }

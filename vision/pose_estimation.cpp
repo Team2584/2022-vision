@@ -19,6 +19,72 @@ inline double standardRad(double t)
     return t;
 }
 
+tag_position get_tag_position(int id)
+{
+    tag_position pos;
+    double field_len = 54 * 12 + 3.25;
+
+    double blue_grid_y = 3 * 12 + 4.25;
+    double red_grid_y = field_len - blue_grid_y;
+
+    double blue_sub_y = 14;
+    double red_sub_y = field_len - blue_sub_y;
+
+    double grid_z = 12 + 6.25;
+    double sub_z = 2 * 12 + 3.375;
+
+    switch (id)
+    {
+    case 1:
+        pos.x = 20 * 12 + 4.5;
+        pos.y = red_grid_y;
+        pos.z = grid_z;
+        pos.theta = 0;
+    case 2:
+        pos.x = 17 * 12 + 3;
+        pos.y = red_grid_y;
+        pos.z = grid_z;
+        pos.theta = 0;
+    case 3:
+        pos.x = 11 * 12 + 4.5;
+        pos.y = red_grid_y;
+        pos.z = grid_z;
+        pos.theta = 0;
+
+    case 4:
+        pos.x = 49.5;
+        pos.y = red_sub_y;
+        pos.z = sub_z;
+        pos.theta = 0;
+
+    case 5:
+        pos.x = 49.5;
+        pos.y = blue_sub_y;
+        pos.z = sub_z;
+        pos.theta = M_PI;
+
+    case 6:
+        pos.x = 11 * 12 + 4.5;
+        pos.y = blue_grid_y;
+        pos.z = grid_z;
+        pos.theta = M_PI;
+    case 7:
+        pos.x = 17 * 12 + 3;
+        pos.y = blue_grid_y;
+        pos.z = grid_z;
+        pos.theta = M_PI;
+    case 8:
+        pos.x = 20 * 12 + 4.5;
+        pos.y = blue_grid_y;
+        pos.z = grid_z;
+        pos.theta = M_PI;
+    }
+    pos.x *= INCH;
+    pos.y *= INCH;
+    pos.z *= INCH;
+    return pos;
+}
+
 // Convert rotation matrix to Euler angles
 void wRo_to_euler(const Eigen::Matrix3d &wRo, double &yaw, double &pitch, double &roll)
 {
@@ -154,10 +220,9 @@ void getRobotPosition(apriltag_detection_t *det, robot_position *pos, camInfo *c
 
     // printf("Pre Rotated: \n x: %f\n h: %f\n z: %f\n", linX, linY, linZ);
 
-    // Tags can only be read upside-down if rotZ isn't flipped
     Eigen::Vector3d newTagTrans;
     newTagTrans << tag_trans(1) + cam->offset.x, tag_trans(0) + cam->offset.y,
-        tag_trans(2) + cam->offset.z;
+        tag_trans(2) - cam->offset.z;
     /*
      * Camera moves right -> X grows
      * Camera moves away from target -> Y grows
@@ -209,8 +274,15 @@ void getRobotPosition(apriltag_detection_t *det, robot_position *pos, camInfo *c
     pos->y = point(1) + 1;
     pos->z = 0.514 - point(2);
     */
-    pos->x = -point(0);
-    pos->y = point(1);
-    pos->z = -point(2);
+
+    double x = -point(0);
+    double y = point(1);
+    double z = -point(2);
+
+    tag_position tag_pos = get_tag_position(det->id);
+
+    pos->x = tag_pos.x + cos(tag_pos.theta) * x;
+    pos->y = tag_pos.y - cos(tag_pos.theta) * y;
+    pos->z = tag_pos.z + z;
     pos->theta = -1 * (rotZ + M_PI);
 }

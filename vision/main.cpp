@@ -3,6 +3,7 @@
 #include "detection.h"
 #include "graphics_helpers.h"
 #include "pose_estimation.h"
+#define depth_blank "025222072169"
 
 using namespace std;
 using namespace cv;
@@ -15,6 +16,13 @@ int main()
     // flirCamera flir(0);
     // depthCamera depth_blue(DEPTH_BLUE, 640, 480, 60);
     depthCamera depth_red(DEPTH_BLUE, 640, 480, 60);
+    depth_red.setPosOffset(-0.3048, 0.2, 0, 0, -0.2618);
+    // Blue camera
+    setCamParams(608, 608, 323, 245);
+    setDistCoeffs(0.09116903370720442, 0.2567349843314421, -0.003936586357063021,
+                  0.001658039412119442, -1.633408316803933);
+    // Red camera
+    // setCamParams(599, 600, 334, 236);
 
     /**********************************************************************************************
      * AprilTags Setup *
@@ -85,8 +93,6 @@ int main()
         sanitycheckEntry.Set(counter);
         counter++;
 
-        // flir.getFrame();
-        // depth_blue.getFrame();
         depth_red.getFrame();
         chrono::time_point frameTime = chrono::steady_clock::now();
 
@@ -114,9 +120,10 @@ int main()
             poseNum++;
         }
 
-        pair<double, double> polePos = depth_red.findPoles();
-
         /*
+        pair<double, double> polePos = depth_red.findPoles();
+        */
+
         // Print & send cone info
         pair<double, double> conePos = depth_red.findCones();
         // cout << "Cone X: " << conePos.first << endl;
@@ -124,7 +131,6 @@ int main()
         double ms = time_since(frameTime);
         vector<double> coneVector = {conePos.first, conePos.second, ms, coneNum};
         cone_pos_Entry.Set(coneVector);
-        */
 
         /*
         // Print & send cube info
@@ -136,7 +142,7 @@ int main()
         // cube_pos_Entry.Set(coneVector);
         */
 
-        imshow("depth_red", depth_red.colorFrame);
+        // imshow("depth_red", depth_red.colorFrame);
 
         // Print & send pole info
         /*

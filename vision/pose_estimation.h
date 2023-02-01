@@ -19,6 +19,14 @@ extern "C"
 #define TAG_SIZE 0.1524
 #define INCH 39.37
 
+typedef struct tag_position
+{
+    double x;
+    double y;
+    double z;
+    double theta;
+} tag_position;
+
 void getRobotPosition(apriltag_detection_t *det, robot_position *pos, camInfo *cam);
 
 #endif
